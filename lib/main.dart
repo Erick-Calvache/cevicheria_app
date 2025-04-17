@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'firebase_options.dart';
 import 'pedidos_page.dart';
 import 'productos_page.dart';
@@ -42,26 +43,45 @@ class _MenuPageState extends State<MenuPage> {
 
   Future<bool> _guardarPedido() async {
     try {
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
-      CollectionReference pedidos = firestore.collection('pedidos');
-      CollectionReference productos = firestore.collection('productos');
+      final firestore = FirebaseFirestore.instance;
+      final pedidos = firestore.collection('pedidos');
+      final productos = firestore.collection('productos');
 
       final platosSeleccionados =
-          _menu.where((plato) => plato['cantidad'] > 0).toList();
+          _menu.where((p) => p['cantidad'] > 0).toList();
 
       if (platosSeleccionados.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No has seleccionado ningún plato.')),
+        );
+        return false;
+      }
+
+      final bodegaSnapshot = await productos.doc('bodega').get();
+
+      if (!bodegaSnapshot.exists || bodegaSnapshot.data() == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No has seleccionado ningún plato para guardar.'),
+            content: Text('El inventario de la bodega no está disponible.'),
           ),
         );
         return false;
       }
 
-      var bodega = await productos.doc('bodega').get();
-      var productosData = bodega.data() as Map<String, dynamic>;
-
+      final productosData = bodegaSnapshot.data() as Map<String, dynamic>;
       final cevicheCamaronCantidad = _menu[0]['cantidad'];
+
+      if (!productosData.containsKey('camarones')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se encontró el producto "camarones" en la bodega.',
+            ),
+          ),
+        );
+        return false;
+      }
+
       final stockCamaron =
           int.tryParse(productosData['camarones'].toString()) ?? 0;
 
@@ -78,12 +98,7 @@ class _MenuPageState extends State<MenuPage> {
       await pedidos.add({
         'items':
             platosSeleccionados
-                .map(
-                  (plato) => {
-                    'nombre': plato['nombre'],
-                    'cantidad': plato['cantidad'],
-                  },
-                )
+                .map((p) => {'nombre': p['nombre'], 'cantidad': p['cantidad']})
                 .toList(),
         'fecha': FieldValue.serverTimestamp(),
       });
@@ -94,52 +109,51 @@ class _MenuPageState extends State<MenuPage> {
         });
       }
 
-      // Reiniciar cantidades
       setState(() {
         for (var plato in _menu) {
           plato['cantidad'] = 0;
         }
       });
 
-      // Mostrar el diálogo inmediatamente después de guardar el pedido
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await showDialog(
-          context: context,
-          builder:
-              (context) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                title: const Text(
-                  '¡Pedido guardado!',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                content: const Text('Tu pedido fue registrado exitosamente.'),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PedidosPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('Ver pedidos'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Aceptar'),
-                  ),
-                ],
+      await Future.delayed(Duration.zero);
+
+      await showDialog(
+        context: context,
+        builder:
+            (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-        );
-      });
+              title: const Text(
+                '¡Pedido guardado!',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: const Text('Tu pedido fue registrado exitosamente.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PedidosPage()),
+                    );
+                  },
+                  child: const Text('Ver pedidos'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Aceptar'),
+                ),
+              ],
+            ),
+      );
 
       return true;
     } catch (e) {
       print('Error al guardar el pedido: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al guardar el pedido: $e')));
       return false;
     }
   }
@@ -166,10 +180,11 @@ class _MenuPageState extends State<MenuPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.storage),
+            tooltip: 'Ver productos',
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ProductosPage()),
+                MaterialPageRoute(builder: (_) => const ProductosPage()),
               );
             },
           ),
@@ -198,28 +213,27 @@ class _MenuPageState extends State<MenuPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final guardadoConExito = await _guardarPedido();
-
-          if (guardadoConExito) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PedidosPage()),
-            );
-
-            return;
-          }
-
-          await _guardarPedido();
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const PedidosPage()),
-          );
-        },
-        label: const Text('Ver Pedidos'),
-        icon: const Icon(Icons.list),
+      bottomNavigationBar: BottomAppBar(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            TextButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PedidosPage()),
+                );
+              },
+              icon: const Icon(Icons.list),
+              label: const Text('Ver Pedidos'),
+            ),
+            TextButton.icon(
+              onPressed: _guardarPedido,
+              icon: const Icon(Icons.check),
+              label: const Text('Guardar Pedido'),
+            ),
+          ],
+        ),
       ),
     );
   }
