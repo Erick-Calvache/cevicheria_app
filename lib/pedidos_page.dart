@@ -25,12 +25,8 @@ class PedidosPage extends StatelessWidget {
     final formatFecha = DateFormat('dd/MM/yyyy HH:mm');
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pedidos en Vivo'),
-        backgroundColor: Colors.black87,
-        foregroundColor: Colors.white,
-        elevation: 4,
-      ),
+      appBar: AppBar(title: const Text('Pedidos en Vivo')),
+
       body: StreamBuilder<QuerySnapshot>(
         stream:
             FirebaseFirestore.instance
