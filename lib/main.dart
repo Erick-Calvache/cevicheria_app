@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
+import 'intro_page.dart'; // Asegúrate de importar la página de inicio
+
+// Páginas
 import 'pedidos_page.dart';
 import 'productos_page.dart';
+
+// Tema personalizado
+import 'theme.dart';
+
+// Librerías
+import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,8 +28,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Cevichería App',
-      theme: ThemeData(primarySwatch: Colors.deepOrange),
-      home: const MenuPage(),
+      theme: AppTheme.lightTheme,
+      initialRoute: '/', // Se establece la ruta inicial
+      routes: {
+        '/': (context) => const IntroPage(), // Ruta de la pantalla de inicio
+        '/main': (context) => const MenuPage(), // Ruta hacia el menú principal
+      },
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -41,6 +55,26 @@ class _MenuPageState extends State<MenuPage> {
     {'nombre': 'Ceviche extra grande', 'cantidad': 0},
   ];
 
+  void _sumar(int index) {
+    setState(() {
+      _menu[index]['cantidad']++;
+    });
+  }
+
+  void _restar(int index) {
+    setState(() {
+      if (_menu[index]['cantidad'] > 0) {
+        _menu[index]['cantidad']--;
+      }
+    });
+  }
+
+  void _mostrarSnackBar(String mensaje) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(mensaje)));
+  }
+
   Future<bool> _guardarPedido() async {
     try {
       final firestore = FirebaseFirestore.instance;
@@ -51,47 +85,25 @@ class _MenuPageState extends State<MenuPage> {
           _menu.where((p) => p['cantidad'] > 0).toList();
 
       if (platosSeleccionados.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No has seleccionado ningún plato.')),
-        );
+        _mostrarSnackBar('No has seleccionado ningún plato.');
         return false;
       }
 
       final bodegaSnapshot = await productos.doc('bodega').get();
+      final productosData = bodegaSnapshot.data();
 
-      if (!bodegaSnapshot.exists || bodegaSnapshot.data() == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('El inventario de la bodega no está disponible.'),
-          ),
-        );
+      if (productosData == null) {
+        _mostrarSnackBar('El inventario de la bodega no está disponible.');
         return false;
       }
 
-      final productosData = bodegaSnapshot.data() as Map<String, dynamic>;
       final cevicheCamaronCantidad = _menu[0]['cantidad'];
 
-      if (!productosData.containsKey('camarones')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No se encontró el producto "camarones" en la bodega.',
-            ),
-          ),
-        );
-        return false;
-      }
-
-      final stockCamaron =
-          int.tryParse(productosData['camarones'].toString()) ?? 0;
+      final stockCamaron = (productosData['camarones'] as int?) ?? 0;
 
       if (cevicheCamaronCantidad > 0 &&
           stockCamaron < cevicheCamaronCantidad * 8) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No hay suficientes camarones en bodega.'),
-          ),
-        );
+        _mostrarSnackBar('No hay suficientes camarones en bodega.');
         return false;
       }
 
@@ -115,7 +127,7 @@ class _MenuPageState extends State<MenuPage> {
         }
       });
 
-      await Future.delayed(Duration.zero);
+      if (!mounted) return true;
 
       await showDialog(
         context: context,
@@ -151,25 +163,9 @@ class _MenuPageState extends State<MenuPage> {
       return true;
     } catch (e) {
       print('Error al guardar el pedido: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al guardar el pedido: $e')));
+      _mostrarSnackBar('Error al guardar el pedido: $e');
       return false;
     }
-  }
-
-  void _sumar(int index) {
-    setState(() {
-      _menu[index]['cantidad']++;
-    });
-  }
-
-  void _restar(int index) {
-    setState(() {
-      if (_menu[index]['cantidad'] > 0) {
-        _menu[index]['cantidad']--;
-      }
-    });
   }
 
   @override
@@ -194,21 +190,33 @@ class _MenuPageState extends State<MenuPage> {
         itemCount: _menu.length,
         itemBuilder: (context, index) {
           final plato = _menu[index];
-          return ListTile(
-            title: Text(plato['nombre']),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: () => _restar(index),
-                  icon: const Icon(Icons.remove),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            child: GlassContainer(
+              blur: 15,
+              opacity: 0.15,
+              borderRadius: BorderRadius.circular(20),
+              shadowStrength: 8,
+              child: ListTile(
+                title: Text(
+                  plato['nombre'],
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
                 ),
-                Text('${plato['cantidad']}'),
-                IconButton(
-                  onPressed: () => _sumar(index),
-                  icon: const Icon(Icons.add),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => _restar(index),
+                      icon: const Icon(Icons.remove),
+                    ),
+                    Text('${plato['cantidad']}'),
+                    IconButton(
+                      onPressed: () => _sumar(index),
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           );
         },
