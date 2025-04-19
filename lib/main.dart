@@ -1,3 +1,4 @@
+// main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -131,6 +132,82 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
+  Future<void> _mostrarConfirmacion() async {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.4),
+      builder:
+          (_) => Center(
+            child: GlassContainer(
+              blur: 20,
+              opacity: 0.12,
+              borderRadius: BorderRadius.circular(25),
+              shadowStrength: 8,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                width: MediaQuery.of(context).size.width * 0.8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      '¡Pedido guardado!',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PedidosPage(),
+                              ),
+                            );
+                          },
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Ver pedidos'),
+                        ),
+                        const SizedBox(width: 10),
+                        FilledButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.grey.shade800,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Aceptar'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
+  }
+
   Future<bool> _guardarPedido() async {
     try {
       final firestore = FirebaseFirestore.instance;
@@ -186,95 +263,12 @@ class _MenuPageState extends State<MenuPage> {
       if (!mounted) return true;
 
       await _mostrarConfirmacion();
-
       return true;
     } catch (e) {
       print('Error al guardar el pedido: $e');
       await _mostrarDialogoError('Error al guardar el pedido.');
       return false;
     }
-  }
-
-  Future<void> _mostrarConfirmacion() async {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.4),
-      builder:
-          (_) => Center(
-            child: GlassContainer(
-              blur: 20,
-              opacity: 0.12,
-              borderRadius: BorderRadius.circular(25),
-              shadowStrength: 8,
-              border: Border.all(
-                color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.2),
-                width: 1,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                width: MediaQuery.of(context).size.width * 0.8,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 10),
-                    Text(
-                      '¡Pedido guardado!',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Tu pedido fue registrado exitosamente.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        FilledButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PedidosPage(),
-                              ),
-                            );
-                          },
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Ver pedidos'),
-                        ),
-                        const SizedBox(width: 10),
-                        FilledButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.grey.shade800,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Aceptar'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-    );
   }
 
   @override
