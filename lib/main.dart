@@ -121,36 +121,7 @@ class _MenuPageState extends State<MenuPage> {
 
       if (!mounted) return true;
 
-      await showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: Text(
-                '¡Pedido guardado!',
-                style: GoogleFonts.merriweather(fontWeight: FontWeight.bold),
-              ),
-              content: const Text('Tu pedido fue registrado exitosamente.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PedidosPage()),
-                    );
-                  },
-                  child: const Text('Ver pedidos'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Aceptar'),
-                ),
-              ],
-            ),
-      );
+      await _mostrarConfirmacion();
 
       return true;
     } catch (e) {
@@ -158,6 +129,39 @@ class _MenuPageState extends State<MenuPage> {
       _mostrarSnackBar('Error al guardar el pedido.');
       return false;
     }
+  }
+
+  Future<void> _mostrarConfirmacion() async {
+    await showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              '¡Pedido guardado!',
+              style: GoogleFonts.merriweather(fontWeight: FontWeight.bold),
+            ),
+            content: const Text('Tu pedido fue registrado exitosamente.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PedidosPage()),
+                  );
+                },
+                child: const Text('Ver pedidos'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Aceptar'),
+              ),
+            ],
+          ),
+    );
   }
 
   @override

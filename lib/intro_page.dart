@@ -75,7 +75,7 @@ class _IntroPageState extends State<IntroPage>
               SlideTransition(
                 position: _subtitleAnim,
                 child: Text(
-                  'La mejor cevichería del pacífico',
+                  'La mejor cevichería',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 18,

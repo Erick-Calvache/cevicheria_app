@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProductosPage extends StatefulWidget {
   const ProductosPage({super.key});
@@ -36,13 +37,17 @@ class _ProductosPageState extends State<ProductosPage> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: AlertDialog(
-                  backgroundColor: Colors.white.withOpacity(0.9),
+                  backgroundColor: Colors.black.withOpacity(0.8),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
                   title: Text(
                     titulo,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: GoogleFonts.merriweather(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -52,7 +57,12 @@ class _ProductosPageState extends State<ProductosPage> {
                           controller: _nombreController,
                           decoration: const InputDecoration(
                             labelText: 'Nombre',
+                            labelStyle: TextStyle(color: Colors.white70),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white),
+                            ),
                           ),
+                          style: const TextStyle(color: Colors.white),
                         ),
                       const SizedBox(height: 10),
                       TextField(
@@ -60,14 +70,22 @@ class _ProductosPageState extends State<ProductosPage> {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: 'Cantidad',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white),
+                          ),
                         ),
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ],
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancelar'),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                     ElevatedButton(
                       onPressed: () {
@@ -88,6 +106,11 @@ class _ProductosPageState extends State<ProductosPage> {
                         onGuardar(nombreInicial ?? nombre, cantidad);
                         Navigator.of(context).pop();
                       },
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
                       child: const Text('Guardar'),
                     ),
                   ],
@@ -182,7 +205,7 @@ class _ProductosPageState extends State<ProductosPage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Bodega de Ingredientes'),
-        backgroundColor: Colors.black.withOpacity(0.3),
+        backgroundColor: Colors.black.withOpacity(0.6),
         elevation: 0,
         centerTitle: true,
       ),
@@ -223,7 +246,7 @@ class _ProductosPageState extends State<ProductosPage> {
                   child: ListTile(
                     title: Text(
                       nombre,
-                      style: const TextStyle(
+                      style: GoogleFonts.merriweather(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         color: Colors.white,
@@ -231,7 +254,7 @@ class _ProductosPageState extends State<ProductosPage> {
                     ),
                     subtitle: Text(
                       'Cantidad: $cantidad',
-                      style: TextStyle(color: Colors.white70),
+                      style: const TextStyle(color: Colors.white70),
                     ),
                     trailing: const Icon(Icons.edit, color: Colors.white),
                     onTap: () => _editarIngrediente(nombre, cantidad),
