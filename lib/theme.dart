@@ -2,60 +2,85 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF0088CC); // Azul cevichoso
-  static const Color secondaryColor = Color(0xFF00C8A0); // Verde limón
-  static const Color backgroundColor = Color(0xFFEFF9F6); // Fondo claro
-  static const Color darkBackground = Color(
-    0xFF1B1E23,
-  ); // Para modo oscuro (opcional)
+  // Paleta inspirada en la imagen
+  static const Color primaryColor = Color(0xFFB8864B); // Dorado/caramelo
+  static const Color secondaryColor = Color(0xFF2C2C2C); // Gris oscuro
+  static const Color backgroundColor = Color(0xFF121212); // Negro casi puro
+  static const Color cardColor = Color(0xFF1E1E1E); // Para componentes
+  static const Color textColor = Colors.white;
 
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: backgroundColor,
-      colorScheme: ColorScheme.light(
+      colorScheme: ColorScheme.dark(
         primary: primaryColor,
         secondary: secondaryColor,
-        surface: Colors.white.withOpacity(0.9),
+        surface: cardColor,
         background: backgroundColor,
         onPrimary: Colors.white,
-        onSecondary: Colors.black,
-        onSurface: Colors.black,
+        onSecondary: Colors.white70,
+        onSurface: Colors.white,
       ),
       appBarTheme: AppBarTheme(
         elevation: 0,
-        backgroundColor: Colors.white.withOpacity(0.5),
-        foregroundColor: Colors.black87,
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.poppins(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
+        titleTextStyle: GoogleFonts.merriweather(
+          fontSize: 22,
+          fontWeight: FontWeight.w900,
+          color: textColor,
         ),
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      textTheme: GoogleFonts.poppinsTextTheme(),
+      textTheme: TextTheme(
+        displayLarge: GoogleFonts.merriweather(
+          fontSize: 36,
+          fontWeight: FontWeight.w900,
+          color: textColor,
+        ),
+        titleLarge: GoogleFonts.merriweather(
+          fontSize: 24,
+          fontWeight: FontWeight.w800,
+          color: textColor,
+        ),
+        bodyMedium: GoogleFonts.poppins(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: textColor,
+        ),
+        labelLarge: GoogleFonts.poppins(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: primaryColor,
+        ),
+      ),
       iconTheme: const IconThemeData(color: primaryColor),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
+          foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
-          elevation: 4,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          elevation: 2,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          textStyle: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white.withOpacity(0.7),
+        fillColor: cardColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
@@ -64,25 +89,10 @@ class AppTheme {
           horizontal: 16,
           vertical: 14,
         ),
+        hintStyle: TextStyle(color: Colors.white60),
+        labelStyle: TextStyle(color: primaryColor),
       ),
-    );
-  }
-
-  // Puedes activar esto si algún rato haces un toggle de dark mode
-  static ThemeData get darkTheme {
-    return ThemeData.dark().copyWith(
-      scaffoldBackgroundColor: darkBackground,
-      colorScheme: const ColorScheme.dark(
-        primary: primaryColor,
-        secondary: secondaryColor,
-        background: Color(0xFF121212),
-        surface: Color(0xFF2A2A2A),
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onBackground: Colors.white,
-        onSurface: Colors.white,
-      ),
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+      cardColor: cardColor,
     );
   }
 }

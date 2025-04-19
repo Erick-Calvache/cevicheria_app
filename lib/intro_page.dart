@@ -1,35 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class IntroPage extends StatefulWidget {
   const IntroPage({super.key});
 
   @override
-  _IntroPageState createState() => _IntroPageState();
+  State<IntroPage> createState() => _IntroPageState();
 }
 
 class _IntroPageState extends State<IntroPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<Offset> _textAnimation;
-  late Animation<Offset> _buttonAnimation;
+  late Animation<Offset> _titleAnim;
+  late Animation<Offset> _subtitleAnim;
+  late Animation<Offset> _buttonAnim;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 1),
       vsync: this,
+      duration: const Duration(milliseconds: 1200),
     );
 
-    _textAnimation = Tween<Offset>(
+    _titleAnim = Tween<Offset>(
       begin: const Offset(0, -1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _buttonAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
+    _subtitleAnim = Tween<Offset>(
+      begin: const Offset(0, -1.5),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    _buttonAnim = Tween<Offset>(
+      begin: const Offset(0, 1.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCirc));
 
     _controller.forward();
   }
@@ -40,67 +45,76 @@ class _IntroPageState extends State<IntroPage>
     super.dispose();
   }
 
-  Color get background => const Color(0xFFF1FAF9); // Arena blanca
-
-  Color get buttonColor => const Color(0xFF7FD6C2); // Verde agua pastel
-
-  Color get textColor => const Color(0xFF3B3B3B); // Gris oscuro elegante
+  final Color _bgColor = const Color(0xFF121212); // Negro profundo
+  final Color _goldAccent = const Color(0xFFD4AF37); // Dorado
+  final Color _textColor = Colors.white;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: background,
+      backgroundColor: _bgColor,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SlideTransition(
-              position: _textAnimation,
-              child: Text(
-                "Cangreviche",
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ),
-            SlideTransition(
-              position: _textAnimation,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SlideTransition(
+                position: _titleAnim,
                 child: Text(
-                  "La mejor cevichería",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w400,
-                    color: textColor.withOpacity(0.7),
+                  'CANGREVICHE',
+                  style: GoogleFonts.merriweather(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
+                    color: _textColor,
+                    letterSpacing: 2,
                   ),
                 ),
               ),
-            ),
-            SlideTransition(
-              position: _buttonAnimation,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/main');
-                },
-                style: ElevatedButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: const EdgeInsets.all(30),
-                  backgroundColor: buttonColor.withOpacity(0.85),
-                  elevation: 10,
-                  shadowColor: buttonColor.withOpacity(0.5),
-                ),
-                child: const Icon(
-                  Icons.arrow_forward,
-                  color: Colors.white,
-                  size: 40,
+              const SizedBox(height: 10),
+              SlideTransition(
+                position: _subtitleAnim,
+                child: Text(
+                  'La mejor cevichería del pacífico',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    color: _textColor.withOpacity(0.6),
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 60),
+              SlideTransition(
+                position: _buttonAnim,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacementNamed(context, '/main');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 50,
+                      vertical: 18,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      side: BorderSide(color: _goldAccent, width: 2),
+                    ),
+                  ),
+                  child: Text(
+                    'Entrar',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: _goldAccent,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

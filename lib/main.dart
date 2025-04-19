@@ -3,16 +3,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
-import 'intro_page.dart'; // Asegúrate de importar la página de inicio
-
-// Páginas
+import 'intro_page.dart';
 import 'pedidos_page.dart';
 import 'productos_page.dart';
-
-// Tema personalizado
 import 'theme.dart';
-
-// Librerías
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 
 void main() async {
@@ -29,10 +23,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Cevichería App',
       theme: AppTheme.lightTheme,
-      initialRoute: '/', // Se establece la ruta inicial
+      initialRoute: '/',
       routes: {
-        '/': (context) => const IntroPage(), // Ruta de la pantalla de inicio
-        '/main': (context) => const MenuPage(), // Ruta hacia el menú principal
+        '/': (context) => const IntroPage(),
+        '/main': (context) => const MenuPage(),
       },
       debugShowCheckedModeBanner: false,
     );
@@ -70,9 +64,9 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _mostrarSnackBar(String mensaje) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(mensaje)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensaje), backgroundColor: Colors.black87),
+    );
   }
 
   Future<bool> _guardarPedido() async {
@@ -80,7 +74,6 @@ class _MenuPageState extends State<MenuPage> {
       final firestore = FirebaseFirestore.instance;
       final pedidos = firestore.collection('pedidos');
       final productos = firestore.collection('productos');
-
       final platosSeleccionados =
           _menu.where((p) => p['cantidad'] > 0).toList();
 
@@ -98,7 +91,6 @@ class _MenuPageState extends State<MenuPage> {
       }
 
       final cevicheCamaronCantidad = _menu[0]['cantidad'];
-
       final stockCamaron = (productosData['camarones'] as int?) ?? 0;
 
       if (cevicheCamaronCantidad > 0 &&
@@ -136,9 +128,9 @@ class _MenuPageState extends State<MenuPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              title: const Text(
+              title: Text(
                 '¡Pedido guardado!',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: GoogleFonts.merriweather(fontWeight: FontWeight.bold),
               ),
               content: const Text('Tu pedido fue registrado exitosamente.'),
               actions: [
@@ -163,7 +155,7 @@ class _MenuPageState extends State<MenuPage> {
       return true;
     } catch (e) {
       print('Error al guardar el pedido: $e');
-      _mostrarSnackBar('Error al guardar el pedido: $e');
+      _mostrarSnackBar('Error al guardar el pedido.');
       return false;
     }
   }
@@ -172,47 +164,47 @@ class _MenuPageState extends State<MenuPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Menú de la Cevichería'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.storage),
-            tooltip: 'Ver productos',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProductosPage()),
-              );
-            },
-          ),
-        ],
+        title: Text(
+          'Menú de la Cevichería',
+          style: GoogleFonts.merriweather(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: ListView.builder(
         itemCount: _menu.length,
         itemBuilder: (context, index) {
           final plato = _menu[index];
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
             child: GlassContainer(
-              blur: 15,
+              blur: 18,
               opacity: 0.15,
               borderRadius: BorderRadius.circular(20),
               shadowStrength: 8,
               child: ListTile(
                 title: Text(
                   plato['nombre'],
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
                       onPressed: () => _restar(index),
-                      icon: const Icon(Icons.remove),
+                      icon: const Icon(Icons.remove, color: Colors.white70),
                     ),
-                    Text('${plato['cantidad']}'),
+                    Text(
+                      '${plato['cantidad']}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
                     IconButton(
                       onPressed: () => _sumar(index),
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(Icons.add, color: Colors.white),
                     ),
                   ],
                 ),
@@ -221,26 +213,42 @@ class _MenuPageState extends State<MenuPage> {
           );
         },
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _guardarPedido,
+        backgroundColor: AppTheme.primaryColor,
+        label: const Text('Confirmar Pedido'),
+        icon: const Icon(Icons.send),
+      ),
       bottomNavigationBar: BottomAppBar(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            TextButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PedidosPage()),
-                );
-              },
-              icon: const Icon(Icons.list),
-              label: const Text('Ver Pedidos'),
-            ),
-            TextButton.icon(
-              onPressed: _guardarPedido,
-              icon: const Icon(Icons.check),
-              label: const Text('Guardar Pedido'),
-            ),
-          ],
+        color: Colors.black,
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PedidosPage()),
+                  );
+                },
+                icon: const Icon(Icons.receipt_long),
+                label: const Text('Pedidos'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProductosPage()),
+                  );
+                },
+                icon: const Icon(Icons.inventory_2),
+                label: const Text('Inventario'),
+              ),
+            ],
+          ),
         ),
       ),
     );
