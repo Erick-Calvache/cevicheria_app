@@ -31,13 +31,18 @@ class _ProductosPageState extends State<ProductosPage> {
       context: context,
       builder:
           (_) => Dialog(
-            backgroundColor: Colors.transparent,
+            backgroundColor: const Color.fromARGB(15, 0, 0, 0),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: AlertDialog(
-                  backgroundColor: Colors.black.withOpacity(0.8),
+                  backgroundColor: const Color.fromARGB(
+                    255,
+                    88,
+                    88,
+                    88,
+                  ).withOpacity(0.8),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),

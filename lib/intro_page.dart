@@ -65,7 +65,7 @@ class _IntroPageState extends State<IntroPage>
                   fit: BoxFit.scaleDown,
                   child: Text(
                     'CANGREVICHE',
-                    style: GoogleFonts.merriweather(
+                    style: GoogleFonts.lora(
                       fontSize: 40,
                       fontWeight: FontWeight.w900,
                       color: _textColor,
@@ -107,7 +107,7 @@ class _IntroPageState extends State<IntroPage>
                   ),
                   child: Text(
                     'Entrar',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.lora(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: _goldAccent,
