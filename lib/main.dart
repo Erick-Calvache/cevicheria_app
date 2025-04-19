@@ -47,7 +47,11 @@ class _MenuPageState extends State<MenuPage> {
     {'nombre': 'Ceviche mixto', 'cantidad': 0},
     {'nombre': 'Ceviche con arroz', 'cantidad': 0},
     {'nombre': 'Ceviche con chifle', 'cantidad': 0},
+    {'nombre': 'Ceviche de pulpo', 'cantidad': 0},
     {'nombre': 'Ceviche extra grande', 'cantidad': 0},
+    {'nombre': 'Arroz con camarones', 'cantidad': 0},
+    {'nombre': 'consome', 'cantidad': 0},
+    {'nombre': 'sancocho de pescado', 'cantidad': 0},
   ];
 
   void _sumar(int index) {
