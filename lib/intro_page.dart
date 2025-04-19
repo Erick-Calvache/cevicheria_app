@@ -61,13 +61,16 @@ class _IntroPageState extends State<IntroPage>
             children: [
               SlideTransition(
                 position: _titleAnim,
-                child: Text(
-                  'CANGREVICHE',
-                  style: GoogleFonts.merriweather(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
-                    color: _textColor,
-                    letterSpacing: 2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'CANGREVICHE',
+                    style: GoogleFonts.merriweather(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w900,
+                      color: _textColor,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ),
               ),

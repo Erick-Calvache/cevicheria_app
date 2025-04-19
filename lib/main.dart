@@ -63,9 +63,71 @@ class _MenuPageState extends State<MenuPage> {
     });
   }
 
-  void _mostrarSnackBar(String mensaje) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), backgroundColor: Colors.black87),
+  Future<void> _mostrarDialogoError(String mensaje) async {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.4),
+      builder:
+          (_) => Center(
+            child: GlassContainer(
+              blur: 20,
+              shadowStrength: 8,
+              borderRadius: BorderRadius.circular(25),
+              opacity: 0.12,
+              border: Border.all(
+                color: Colors.redAccent.withOpacity(0.3),
+                width: 1,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                width: MediaQuery.of(context).size.width * 0.8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.redAccent,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Atención',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      mensaje,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Entendido'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
     );
   }
 
@@ -78,7 +140,7 @@ class _MenuPageState extends State<MenuPage> {
           _menu.where((p) => p['cantidad'] > 0).toList();
 
       if (platosSeleccionados.isEmpty) {
-        _mostrarSnackBar('No has seleccionado ningún plato.');
+        await _mostrarDialogoError('No has seleccionado ningún plato.');
         return false;
       }
 
@@ -86,7 +148,9 @@ class _MenuPageState extends State<MenuPage> {
       final productosData = bodegaSnapshot.data();
 
       if (productosData == null) {
-        _mostrarSnackBar('El inventario de la bodega no está disponible.');
+        await _mostrarDialogoError(
+          'El inventario de la bodega no está disponible.',
+        );
         return false;
       }
 
@@ -95,7 +159,7 @@ class _MenuPageState extends State<MenuPage> {
 
       if (cevicheCamaronCantidad > 0 &&
           stockCamaron < cevicheCamaronCantidad * 8) {
-        _mostrarSnackBar('No hay suficientes camarones en bodega.');
+        await _mostrarDialogoError('No hay suficientes camarones en bodega.');
         return false;
       }
 
@@ -126,40 +190,89 @@ class _MenuPageState extends State<MenuPage> {
       return true;
     } catch (e) {
       print('Error al guardar el pedido: $e');
-      _mostrarSnackBar('Error al guardar el pedido.');
+      await _mostrarDialogoError('Error al guardar el pedido.');
       return false;
     }
   }
 
   Future<void> _mostrarConfirmacion() async {
-    await showDialog(
+    showDialog(
       context: context,
+      barrierColor: Colors.black.withOpacity(0.4),
       builder:
-          (_) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Text(
-              '¡Pedido guardado!',
-              style: GoogleFonts.merriweather(fontWeight: FontWeight.bold),
-            ),
-            content: const Text('Tu pedido fue registrado exitosamente.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PedidosPage()),
-                  );
-                },
-                child: const Text('Ver pedidos'),
+          (_) => Center(
+            child: GlassContainer(
+              blur: 20,
+              opacity: 0.12,
+              borderRadius: BorderRadius.circular(25),
+              shadowStrength: 8,
+              border: Border.all(
+                color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.2),
+                width: 1,
               ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Aceptar'),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                width: MediaQuery.of(context).size.width * 0.8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      '¡Pedido guardado!',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Tu pedido fue registrado exitosamente.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PedidosPage(),
+                              ),
+                            );
+                          },
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Ver pedidos'),
+                        ),
+                        const SizedBox(width: 10),
+                        FilledButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.grey.shade800,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Aceptar'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
     );
   }
@@ -193,6 +306,7 @@ class _MenuPageState extends State<MenuPage> {
                     fontWeight: FontWeight.w600,
                     fontSize: 18,
                     color: Colors.white,
+                    decoration: TextDecoration.none,
                   ),
                 ),
                 trailing: Row(
