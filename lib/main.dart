@@ -78,10 +78,7 @@ class _MenuPageState extends State<MenuPage> {
               shadowStrength: 8,
               borderRadius: BorderRadius.circular(25),
               opacity: 0.12,
-              border: Border.all(
-                color: Colors.redAccent.withOpacity(0.3),
-                width: 1,
-              ),
+              border: Border.all(color: const Color(0xFF7D91FF), width: 1),
               child: Container(
                 padding: const EdgeInsets.all(24),
                 width: MediaQuery.of(context).size.width * 0.8,
@@ -93,7 +90,7 @@ class _MenuPageState extends State<MenuPage> {
                   children: [
                     const Icon(
                       Icons.warning_amber_rounded,
-                      color: Colors.redAccent,
+                      color: const Color(0xFF7D91FF),
                       size: 48,
                     ),
                     const SizedBox(height: 10),
@@ -120,7 +117,7 @@ class _MenuPageState extends State<MenuPage> {
                     FilledButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
+                        backgroundColor: const Color(0xFF7D91FF),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
