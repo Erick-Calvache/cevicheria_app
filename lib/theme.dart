@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Paleta inspirada en la imagen
-  static const Color primaryColor = Color(0xFFB8864B); // Dorado/caramelo
+  static const Color primaryColor = Color(0xFF7D91FF);
   static const Color secondaryColor = Color(0xFF2C2C2C); // Gris oscuro
   static const Color backgroundColor = Color(0xFF121212); // Negro casi puro
   static const Color cardColor = Color(0xFF1E1E1E); // Para componentes

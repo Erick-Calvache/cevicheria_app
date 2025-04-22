@@ -46,7 +46,7 @@ class _IntroPageState extends State<IntroPage>
   }
 
   final Color _bgColor = const Color(0xFF121212); // Negro profundo
-  final Color _goldAccent = const Color(0xFFD4AF37); // Dorado
+  final Color _goldAccent = const Color(0xFF7D91FF);
   final Color _textColor = Colors.white;
 
   @override

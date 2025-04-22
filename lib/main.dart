@@ -5,10 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'intro_page.dart';
-import 'pedidos_page.dart';
-import 'productos_page.dart';
 import 'theme.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
+import 'home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +26,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const IntroPage(),
-        '/main': (context) => const MenuPage(),
+        '/main': (context) => const HomePage(),
       },
       debugShowCheckedModeBanner: false,
     );
@@ -171,39 +170,6 @@ class _MenuPageState extends State<MenuPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        FilledButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PedidosPage(),
-                              ),
-                            );
-                          },
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Ver pedidos'),
-                        ),
-                        const SizedBox(width: 10),
-                        FilledButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.grey.shade800,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Aceptar'),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -334,38 +300,6 @@ class _MenuPageState extends State<MenuPage> {
         backgroundColor: AppTheme.primaryColor,
         label: const Text('Confirmar Pedido'),
         icon: const Icon(Icons.send),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.black,
-        elevation: 10,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PedidosPage()),
-                  );
-                },
-                icon: const Icon(Icons.receipt_long),
-                label: const Text('Pedidos'),
-              ),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProductosPage()),
-                  );
-                },
-                icon: const Icon(Icons.inventory_2),
-                label: const Text('Inventario'),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
