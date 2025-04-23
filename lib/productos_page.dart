@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
@@ -210,13 +211,15 @@ class _ProductosPageState extends State<ProductosPage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Bodega de Ingredientes'),
-        backgroundColor: Colors.black.withOpacity(0.6),
+        backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
+        // Esta línea elimina cualquier sombra que aparezca al hacer scroll.
+        scrolledUnderElevation: 0,
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _agregarIngrediente,
-        backgroundColor: Colors.black87,
+        backgroundColor: Color(0xFF7D91FF),
         child: const Icon(Icons.add),
       ),
       body: StreamBuilder<DocumentSnapshot>(
@@ -271,7 +274,6 @@ class _ProductosPageState extends State<ProductosPage> {
           );
         },
       ),
-      backgroundColor: const Color(0xFF1E1E1E), // fondo oscuro
     );
   }
 }

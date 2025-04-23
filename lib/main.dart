@@ -1,4 +1,4 @@
-// main.dart
+// esta linea importa librerías principales de Flutter y Firebase
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -41,6 +41,7 @@ class MenuPage extends StatefulWidget {
 }
 
 class _MenuPageState extends State<MenuPage> {
+  // esta lista contiene los platos disponibles y sus cantidades
   final List<Map<String, dynamic>> _menu = [
     {'nombre': 'Ceviche de camarón', 'cantidad': 0},
     {'nombre': 'Ceviche mixto', 'cantidad': 0},
@@ -53,12 +54,14 @@ class _MenuPageState extends State<MenuPage> {
     {'nombre': 'sancocho de pescado', 'cantidad': 0},
   ];
 
+  // suma la cantidad de un plato
   void _sumar(int index) {
     setState(() {
       _menu[index]['cantidad']++;
     });
   }
 
+  // resta la cantidad de un plato
   void _restar(int index) {
     setState(() {
       if (_menu[index]['cantidad'] > 0) {
@@ -67,6 +70,7 @@ class _MenuPageState extends State<MenuPage> {
     });
   }
 
+  // muestra diálogo de error si hay algún problema
   Future<void> _mostrarDialogoError(String mensaje) async {
     showDialog(
       context: context,
@@ -90,7 +94,7 @@ class _MenuPageState extends State<MenuPage> {
                   children: [
                     const Icon(
                       Icons.warning_amber_rounded,
-                      color: const Color(0xFF7D91FF),
+                      color: Color(0xFF7D91FF),
                       size: 48,
                     ),
                     const SizedBox(height: 10),
@@ -132,6 +136,7 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
+  // muestra mensaje de confirmación si el pedido fue exitoso
   Future<void> _mostrarConfirmacion() async {
     showDialog(
       context: context,
@@ -175,6 +180,7 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
+  // guarda el pedido en Firestore si hay stock suficiente
   Future<bool> _guardarPedido() async {
     try {
       final firestore = FirebaseFirestore.instance;
@@ -241,13 +247,16 @@ class _MenuPageState extends State<MenuPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           'Menú de la Cevichería',
           style: GoogleFonts.merriweather(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
+        // Esta línea elimina cualquier sombra que aparezca al hacer scroll.
+        scrolledUnderElevation: 0,
       ),
       body: ListView.builder(
         itemCount: _menu.length,
@@ -260,6 +269,7 @@ class _MenuPageState extends State<MenuPage> {
               opacity: 0.15,
               borderRadius: BorderRadius.circular(20),
               shadowStrength: 8,
+              // esta linea crea cada tarjeta de plato
               child: ListTile(
                 title: Text(
                   plato['nombre'],

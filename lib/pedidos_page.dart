@@ -1,3 +1,4 @@
+import 'package:cevicheria_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
@@ -67,7 +68,14 @@ class _PedidosPageState extends State<PedidosPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pedidos en Vivo')),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text('Pedidos en Vivo'),
+        backgroundColor: AppTheme.backgroundColor,
+        elevation: 0,
+        // Esta línea elimina cualquier sombra que aparezca al hacer scroll.
+        scrolledUnderElevation: 0,
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream:
             FirebaseFirestore.instance
@@ -119,7 +127,10 @@ class _PedidosPageState extends State<PedidosPage> {
                         ),
                         child: Row(
                           children: [
-                            Icon(getEstadoIcon(estado), color: Colors.amber),
+                            Icon(
+                              getEstadoIcon(estado),
+                              color: const Color.fromARGB(255, 0, 81, 255),
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(

@@ -10,8 +10,10 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _selectedIndex = 0;
+  late AnimationController _controller;
+  late Animation<double> _offsetAnimation;
 
   final List<Widget> _pages = const [
     MenuPage(),
@@ -19,10 +21,41 @@ class _HomePageState extends State<HomePage> {
     ProductosPage(),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _offsetAnimation = Tween<double>(
+      begin: -20, // Comienza desde arriba
+      end: 0,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut, // Suaviza la animación
+      ),
+    );
+
+    // Iniciar con animación por defecto
+    _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_selectedIndex != index) {
+      setState(() {
+        _selectedIndex = index;
+        _controller.forward(from: 0); // reinicia animación al seleccionar nuevo
+      });
+    }
   }
 
   @override
@@ -31,43 +64,101 @@ class _HomePageState extends State<HomePage> {
       body: _pages[_selectedIndex],
       bottomNavigationBar: ClipPath(
         clipper: InvertedTopCornersClipper(),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.black,
-          selectedItemColor: const Color.fromARGB(
-            255,
-            125,
-            145,
-            255,
-          ).withOpacity(0.8),
-          unselectedItemColor: const Color.fromARGB(100, 255, 255, 255),
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.restaurant_menu),
-              label: 'Menú',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long),
-              label: 'Pedidos',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2),
-              label: 'Productos',
-            ),
-          ],
+        child: BottomAppBar(
+          color: Colors.black,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(3, (index) {
+              IconData iconData;
+              String label;
+
+              switch (index) {
+                case 0:
+                  iconData = Icons.restaurant_menu;
+                  label = 'Menú';
+                  break;
+                case 1:
+                  iconData = Icons.receipt_long;
+                  label = 'Pedidos';
+                  break;
+                case 2:
+                default:
+                  iconData = Icons.inventory_2;
+                  label = 'Productos';
+                  break;
+              }
+
+              final isSelected = _selectedIndex == index;
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => _onItemTapped(index),
+                  child: AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, child) {
+                      final offsetY = isSelected ? _offsetAnimation.value : 0.0;
+
+                      return Transform.translate(
+                        offset: Offset(0, offsetY),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              iconData,
+                              color:
+                                  isSelected
+                                      ? const Color.fromARGB(
+                                        255,
+                                        125,
+                                        145,
+                                        255,
+                                      ).withOpacity(0.9)
+                                      : const Color.fromARGB(
+                                        100,
+                                        255,
+                                        255,
+                                        255,
+                                      ),
+                            ),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                color:
+                                    isSelected
+                                        ? const Color.fromARGB(
+                                          255,
+                                          125,
+                                          145,
+                                          255,
+                                        ).withOpacity(0.9)
+                                        : const Color.fromARGB(
+                                          100,
+                                          255,
+                                          255,
+                                          255,
+                                        ),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            }),
+          ),
         ),
       ),
     );
   }
 }
 
-// Esta clase debe estar fuera de _HomePageState
 class InvertedTopCornersClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     const radius = 30.0;
-
     final path = Path();
 
     path.moveTo(radius, 0);
