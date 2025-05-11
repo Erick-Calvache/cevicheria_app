@@ -68,7 +68,6 @@ class _PedidosPageState extends State<PedidosPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Pedidos en Vivo'),
         backgroundColor: AppTheme.backgroundColor,
