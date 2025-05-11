@@ -1,4 +1,4 @@
-// esta linea importa librerías principales de Flutter y Firebase
+// Importaciones necesarias
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,10 +8,24 @@ import 'intro_page.dart';
 import 'theme.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 import 'home_page.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:io';
 
-void main() async {
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  const initializationSettings = InitializationSettings(
+    android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    iOS: DarwinInitializationSettings(),
+    macOS: DarwinInitializationSettings(),
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
   runApp(const MyApp());
 }
 
@@ -35,7 +49,6 @@ class MyApp extends StatelessWidget {
 
 class MenuPage extends StatefulWidget {
   const MenuPage({super.key});
-
   @override
   State<MenuPage> createState() => _MenuPageState();
 }
@@ -104,6 +117,45 @@ class _MenuPageState extends State<MenuPage> {
         _menu[index]['cantidad']--;
       }
     });
+  }
+
+  void escucharPedidosNuevos() {
+    FirebaseFirestore.instance
+        .collection('pedidos')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((event) {
+          for (var doc in event.docChanges) {
+            if (doc.type == DocumentChangeType.added) {
+              mostrarNotificacion(doc.doc.data()?['nombre'] ?? 'Nuevo pedido');
+            }
+          }
+        });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      escucharPedidosNuevos();
+    }
+  }
+
+  void mostrarNotificacion(String titulo) async {
+    const notificationDetails = NotificationDetails();
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      '📦 Nuevo Pedido',
+      titulo,
+      notificationDetails,
+    );
+
+    final player = AudioPlayer();
+    await player.play(
+      AssetSource('notificacion.mp3'),
+    ); // Coloca este archivo en assets/
   }
 
   // muestra diálogo de error si hay algún problema
