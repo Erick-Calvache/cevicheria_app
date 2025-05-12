@@ -10,7 +10,6 @@ import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 import 'home_page.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'dart:io';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -132,14 +131,6 @@ class _MenuPageState extends State<MenuPage> {
             }
           }
         });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (!Platform.isAndroid && !Platform.isIOS) {
-      escucharPedidosNuevos();
-    }
   }
 
   void mostrarNotificacion(String titulo) async {
