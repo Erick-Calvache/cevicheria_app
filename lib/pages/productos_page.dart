@@ -1,5 +1,5 @@
 import 'dart:ui';
-import 'theme.dart';
+import '../theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
