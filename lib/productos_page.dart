@@ -1,5 +1,9 @@
+import 'dart:ui';
+import 'theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:glassmorphism_ui/glassmorphism_ui.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProductosPage extends StatefulWidget {
   const ProductosPage({super.key});
@@ -9,189 +13,191 @@ class ProductosPage extends StatefulWidget {
 }
 
 class _ProductosPageState extends State<ProductosPage> {
-  // Referencia al documento 'bodega' dentro de la colección 'productos'
   final DocumentReference bodegaRef = FirebaseFirestore.instance
       .collection('productos')
       .doc('bodega');
 
-  // Función para agregar un ingrediente a la bodega
-  void _agregarIngrediente() {
-    final _nombreController = TextEditingController();
-    final _cantidadController = TextEditingController();
+  void _mostrarDialogoIngrediente({
+    required String titulo,
+    String? nombreInicial,
+    int? cantidadInicial,
+    required Function(String, int) onGuardar,
+  }) {
+    final _nombreController = TextEditingController(text: nombreInicial ?? '');
+    final _cantidadController = TextEditingController(
+      text: cantidadInicial?.toString() ?? '',
+    );
 
     showDialog(
       context: context,
       builder:
-          (_) => AlertDialog(
-            title: const Text('Agregar ingrediente'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _nombreController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre del ingrediente',
+          (_) => Dialog(
+            backgroundColor: const Color.fromARGB(15, 0, 0, 0),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: AlertDialog(
+                  backgroundColor: const Color.fromARGB(
+                    255,
+                    88,
+                    88,
+                    88,
+                  ).withOpacity(0.8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-                TextField(
-                  controller: _cantidadController,
-                  decoration: const InputDecoration(labelText: 'Cantidad'),
-                  keyboardType: TextInputType.number,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  final nombre = _nombreController.text.trim().toLowerCase();
-                  final cantidad = int.tryParse(
-                    _cantidadController.text.trim(),
-                  );
-
-                  if (nombre.isEmpty || cantidad == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Datos inválidos')),
-                    );
-                    return;
-                  }
-
-                  try {
-                    // Verificar si el ingrediente ya existe
-                    final bodegaSnapshot = await bodegaRef.get();
-                    final bodegaData =
-                        bodegaSnapshot.data() as Map<String, dynamic>;
-
-                    if (bodegaData.containsKey(nombre)) {
-                      // Si el producto ya existe, mostrar mensaje y no agregar
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Producto "$nombre" ya existe en la bodega.',
+                  title: Text(
+                    titulo,
+                    style: GoogleFonts.merriweather(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (nombreInicial == null)
+                        TextField(
+                          controller: _nombreController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nombre',
+                            labelStyle: TextStyle(color: Colors.white70),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white),
+                            ),
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _cantidadController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Cantidad',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white),
                           ),
                         ),
-                      );
-                      Navigator.of(context).pop();
-                      return;
-                    }
-
-                    // Agregar el ingrediente a la bodega
-                    await bodegaRef.set({
-                      nombre: cantidad,
-                    }, SetOptions(merge: true));
-
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Ingrediente "$nombre" agregado.'),
+                        style: const TextStyle(color: Colors.white),
                       ),
-                    );
-                  } catch (e) {
-                    print('Error: $e');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al guardar: $e')),
-                    );
-                  }
-                },
-                child: const Text('Guardar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancelar'),
-              ),
-            ],
-          ),
-    );
-  }
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        final nombre =
+                            _nombreController.text.trim().toLowerCase();
+                        final cantidad = int.tryParse(
+                          _cantidadController.text.trim(),
+                        );
 
-  // Función para editar un ingrediente
-  void _editarIngrediente(String nombre, int cantidad) {
-    final _cantidadController = TextEditingController(
-      text: cantidad.toString(),
-    );
+                        if ((nombre.isEmpty && nombreInicial == null) ||
+                            cantidad == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Datos inválidos')),
+                          );
+                          return;
+                        }
 
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text('Editar ingrediente'),
-            content: TextField(
-              controller: _cantidadController,
-              decoration: const InputDecoration(labelText: 'Cantidad'),
-              keyboardType: TextInputType.number,
+                        onGuardar(nombreInicial ?? nombre, cantidad);
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text('Guardar'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  final nuevaCantidad = int.tryParse(
-                    _cantidadController.text.trim(),
-                  );
-
-                  if (nuevaCantidad == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cantidad inválida')),
-                    );
-                    return;
-                  }
-
-                  try {
-                    // Actualizar el ingrediente en 'bodega'
-                    await bodegaRef.update({nombre: nuevaCantidad});
-
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Ingrediente "$nombre" actualizado.'),
-                      ),
-                    );
-                  } catch (e) {
-                    print('Error: $e');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al actualizar: $e')),
-                    );
-                  }
-                },
-                child: const Text('Actualizar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancelar'),
-              ),
-            ],
           ),
     );
   }
 
-  // Función para eliminar un ingrediente
+  void _agregarIngrediente() {
+    _mostrarDialogoIngrediente(
+      titulo: 'Agregar Ingrediente',
+      onGuardar: (nombre, cantidad) async {
+        try {
+          final bodegaSnapshot = await bodegaRef.get();
+          final bodegaData =
+              bodegaSnapshot.data() as Map<String, dynamic>? ?? {};
+
+          if (bodegaData.containsKey(nombre)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Ya existe "$nombre" en la bodega.')),
+            );
+            return;
+          }
+
+          await bodegaRef.set({nombre: cantidad}, SetOptions(merge: true));
+          setState(() {});
+        } catch (e) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      },
+    );
+  }
+
+  void _editarIngrediente(String nombre, int cantidad) {
+    _mostrarDialogoIngrediente(
+      titulo: 'Editar Ingrediente',
+      nombreInicial: nombre,
+      cantidadInicial: cantidad,
+      onGuardar: (nombre, nuevaCantidad) async {
+        try {
+          await bodegaRef.update({nombre: nuevaCantidad});
+          setState(() {});
+        } catch (e) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error al editar: $e')));
+        }
+      },
+    );
+  }
+
   void _eliminarIngrediente(String nombre) async {
-    final confirmDelete = await showDialog<bool>(
+    final confirmar = await showDialog<bool>(
       context: context,
       builder:
           (_) => AlertDialog(
-            title: const Text('Eliminar ingrediente'),
-            content: Text('¿Estás seguro de que deseas eliminar "$nombre"?'),
+            title: const Text('Eliminar Ingrediente'),
+            content: Text('¿Deseas eliminar "$nombre"?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: const Text('Cancelar'),
               ),
-              TextButton(
+              ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Eliminar'),
               ),
             ],
           ),
     );
 
-    if (confirmDelete == true) {
+    if (confirmar == true) {
       try {
-        // Eliminar el ingrediente de 'bodega'
         await bodegaRef.update({nombre: FieldValue.delete()});
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ingrediente "$nombre" eliminado.')),
-        );
+        setState(() {});
       } catch (e) {
-        print('Error: $e');
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
@@ -202,39 +208,71 @@ class _ProductosPageState extends State<ProductosPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Bodega de Ingredientes')),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: bodegaRef.snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text('Error al cargar los ingredientes'),
-            );
-          }
-
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('La bodega está vacía.'));
-          }
-
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-
-          return ListView(
-            children:
-                data.entries.map((entry) {
-                  return ListTile(
-                    title: Text(entry.key),
-                    trailing: Text(entry.value.toString()),
-                    onTap: () => _editarIngrediente(entry.key, entry.value),
-                    onLongPress: () => _eliminarIngrediente(entry.key),
-                  );
-                }).toList(),
-          );
-        },
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text('Bodega de Ingredientes'),
+        backgroundColor: AppTheme.backgroundColor,
+        elevation: 0,
+        // Esta línea elimina cualquier sombra que aparezca al hacer scroll.
+        scrolledUnderElevation: 0,
+        centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _agregarIngrediente,
+        backgroundColor: Color(0xFF7D91FF),
         child: const Icon(Icons.add),
-        tooltip: 'Agregar ingrediente',
+      ),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: bodegaRef.snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || !snapshot.data!.exists) {
+            return const Center(child: Text('No hay ingredientes'));
+          }
+
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final ingredientes =
+              data.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+
+          return ListView.builder(
+            padding: const EdgeInsets.only(top: 100, bottom: 80),
+            itemCount: ingredientes.length,
+            itemBuilder: (context, index) {
+              final nombre = ingredientes[index].key;
+              final cantidad = ingredientes[index].value;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: GlassContainer(
+                  blur: 10,
+                  opacity: 0.12,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  color: Colors.white.withOpacity(0.1),
+                  child: ListTile(
+                    title: Text(
+                      nombre,
+                      style: GoogleFonts.merriweather(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Cantidad: $cantidad',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    trailing: const Icon(Icons.edit, color: Colors.white),
+                    onTap: () => _editarIngrediente(nombre, cantidad),
+                    onLongPress: () => _eliminarIngrediente(nombre),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
