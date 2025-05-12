@@ -343,7 +343,7 @@ class _MenuPageState extends State<MenuPage> {
         ),
         backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
-        // Esta línea elimina cualquier sombra que aparezca al hacer scroll.
+
         scrolledUnderElevation: 0,
       ),
       body: ListView.builder(
