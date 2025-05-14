@@ -3,11 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import 'package:collection/collection.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../main.dart'; // si la instancia `flutterLocalNotificationsPlugin` está en main.dart
 
 String? _deviceId;
 DateTime? _appInitTime;
@@ -74,6 +76,19 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   void initState() {
+    FirebaseMessaging.instance.requestPermission(); // Pide permisos
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _mostrarNotificacion(
+        message.notification?.title ?? '',
+        message.notification?.body ?? '',
+      );
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      // Maneja cuando abren la app desde la notificación
+    });
+
     super.initState();
     _inicializar();
   }
@@ -104,6 +119,27 @@ class _MenuPageState extends State<MenuPage> {
         }
       }
     });
+  }
+
+  void _mostrarNotificacion(String titulo, String cuerpo) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'canal_notificaciones',
+          'Canal de notificaciones',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      titulo,
+      cuerpo,
+      platformChannelSpecifics,
+    );
   }
 
   void _loadMenuItems() async {
