@@ -1,3 +1,4 @@
+import 'package:cevicheria_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +8,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../main.dart'; // si la instancia `flutterLocalNotificationsPlugin` está en main.dart
@@ -25,6 +27,9 @@ class MenuPage extends StatefulWidget {
 class _MenuPageState extends State<MenuPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AudioPlayer player = AudioPlayer();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchTerm = '';
+  bool _isSearching = false;
 
   List<Map<String, dynamic>> _menuItems = [
     {'nombre': 'Ceviche de camarón', 'cantidad': 0},
@@ -294,40 +299,150 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final filteredItems =
+        _menuItems.where((item) {
+          return item['nombre'].toLowerCase().contains(_searchTerm);
+        }).toList();
+
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text(
-          'Menú',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        backgroundColor: AppTheme.backgroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        title: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Cuadro de búsqueda o botón de lupa alineado a la izquierda
+            Align(
+              alignment: Alignment.centerLeft,
+              child:
+                  _isSearching
+                      ? SizedBox(
+                        width: 580,
+                        height: 40,
+                        child: TextField(
+                          controller: _searchController,
+                          autofocus: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _searchTerm = value.toLowerCase();
+                            });
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Buscar plato...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  _isSearching = false;
+                                  _searchTerm = '';
+                                  _searchController.clear();
+                                });
+                              },
+                            ),
+                            filled: true,
+                            fillColor: const Color.fromARGB(70, 0, 0, 0),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      )
+                      : IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () {
+                          setState(() {
+                            _isSearching = true;
+                          });
+                        },
+                      ),
+            ),
+
+            // Título centrado, que no se mueve
+            Center(
+              child: Text(
+                'Menú',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
+        centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _guardarPedido),
+          TextButton.icon(
+            label: Text(
+              'Confirmar',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+            ),
+            icon: const Icon(Icons.send),
+            onPressed: _guardarPedido,
+          ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: _menuItems.length,
-        itemBuilder: (context, index) {
-          final item = _menuItems[index];
-          return ListTile(
-            title: Text(item['nombre'], style: GoogleFonts.poppins()),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: () => _restar(index),
+
+      body:
+          filteredItems.isEmpty
+              ? Center(
+                child: Text(
+                  'No se encontraron platos',
+                  style: GoogleFonts.averiaSerifLibre(fontSize: 18),
                 ),
-                Text('${item['cantidad']}', style: GoogleFonts.poppins()),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _sumar(index),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+              )
+              : ListView.builder(
+                itemCount: filteredItems.length,
+                itemBuilder: (context, index) {
+                  final item = filteredItems[index];
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 4,
+                    child: ListTile(
+                      title: Text(
+                        item['nombre'],
+                        style: GoogleFonts.averiaSerifLibre(),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove),
+                            onPressed: () => _restar(_menuItems.indexOf(item)),
+                          ),
+                          Text(
+                            '${item['cantidad']}',
+                            style: GoogleFonts.averiaSerifLibre(),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () => _sumar(_menuItems.indexOf(item)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
     );
   }
 }
