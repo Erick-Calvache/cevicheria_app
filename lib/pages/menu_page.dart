@@ -374,12 +374,6 @@ class _MenuPageState extends State<MenuPage> {
             ),
 
             // Título centrado, que no se mueve
-            Center(
-              child: Text(
-                'Menú',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-              ),
-            ),
           ],
         ),
         centerTitle: true,
