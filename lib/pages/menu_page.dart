@@ -2,22 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:cevicheria_app/theme.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:convert';
+import 'package:collection/collection.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+String? _deviceId;
+DateTime? _appInitTime;
+Set<String> _vistoPedidosIds = {};
 
 class MenuPage extends StatefulWidget {
   const MenuPage({super.key});
 
   @override
-  State<MenuPage> createState() => _MenuPageState();
+  _MenuPageState createState() => _MenuPageState();
 }
 
 class _MenuPageState extends State<MenuPage> {
-  final List<Map<String, dynamic>> _menu = [
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AudioPlayer player = AudioPlayer();
+
+  List<Map<String, dynamic>> _menuItems = [
     {'nombre': 'Ceviche de camarón', 'cantidad': 0},
     {'nombre': 'Ceviche de calamar', 'cantidad': 0},
     {'nombre': 'Ceviche de pescado', 'cantidad': 0},
@@ -63,57 +70,157 @@ class _MenuPageState extends State<MenuPage> {
     {'nombre': 'Conchas asadas', 'cantidad': 0},
     {'nombre': 'Entre panas', 'cantidad': 0},
     {'nombre': 'Mix de mariscos', 'cantidad': 0},
-    {'nombre': '', 'cantidad': 0},
   ];
 
-  // suma la cantidad de un plato
-  void _sumar(int index) {
-    setState(() {
-      _menu[index]['cantidad']++;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _inicializar();
   }
 
-  // resta la cantidad de un plato
-  void _restar(int index) {
-    setState(() {
-      if (_menu[index]['cantidad'] > 0) {
-        _menu[index]['cantidad']--;
+  Future<void> _inicializar() async {
+    _appInitTime = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    _deviceId = prefs.getString('deviceId');
+    if (_deviceId == null) {
+      _deviceId = const Uuid().v4();
+      await prefs.setString('deviceId', _deviceId!);
+    }
+    _loadVistosDesdeLocal();
+    _loadMenuItems();
+    _escucharPedidos();
+  }
+
+  void _escucharPedidos() {
+    _firestore.collection('pedidos').snapshots().listen((snapshot) {
+      for (final docChange in snapshot.docChanges) {
+        if (docChange.type == DocumentChangeType.added) {
+          final data = docChange.doc.data()!;
+          final fecha = (data['fecha'] as Timestamp).toDate();
+          final creador = data['creador'];
+          if (fecha.isAfter(_appInitTime!) && creador != _deviceId) {
+            player.play(AssetSource('notificacion.mp3'));
+          }
+        }
       }
     });
   }
 
-  void escucharPedidosNuevos() {
-    FirebaseFirestore.instance
-        .collection('pedidos')
-        .orderBy('timestamp', descending: true)
-        .limit(1)
-        .snapshots()
-        .listen((event) {
-          for (var doc in event.docChanges) {
-            if (doc.type == DocumentChangeType.added) {
-              mostrarNotificacion(doc.doc.data()?['nombre'] ?? 'Nuevo pedido');
-            }
-          }
+  void _loadMenuItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> jsonList = prefs.getStringList('menuItems') ?? [];
+    final List<Map<String, dynamic>> loadedItems =
+        jsonList
+            .map((jsonStr) => Map<String, dynamic>.from(jsonDecode(jsonStr)))
+            .toList();
+
+    setState(() {
+      if (loadedItems.isNotEmpty) {
+        _menuItems = loadedItems;
+      }
+    });
+  }
+
+  void _saveMenuItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> jsonList =
+        _menuItems.map((item) => jsonEncode(item)).toList();
+    await prefs.setStringList('menuItems', jsonList);
+  }
+
+  void _loadVistosDesdeLocal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final vistos = prefs.getStringList('vistos') ?? [];
+    setState(() {
+      _vistoPedidosIds = vistos.toSet();
+    });
+  }
+
+  void _guardarPedidoVisto(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    _vistoPedidosIds.add(id);
+    await prefs.setStringList('vistos', _vistoPedidosIds.toList());
+  }
+
+  void _sumar(int index) {
+    setState(() {
+      _menuItems[index]['cantidad']++;
+    });
+    _saveMenuItems();
+  }
+
+  void _restar(int index) {
+    setState(() {
+      if (_menuItems[index]['cantidad'] > 0) {
+        _menuItems[index]['cantidad']--;
+      }
+    });
+    _saveMenuItems();
+  }
+
+  Future<void> _guardarPedido() async {
+    try {
+      final platosSeleccionados =
+          _menuItems.where((p) => p['cantidad'] > 0).toList();
+
+      if (platosSeleccionados.isEmpty) {
+        await _mostrarDialogoError('No se ha seleccionado ningún plato.');
+        return;
+      }
+
+      final productosSnapshot =
+          await _firestore.collection('productos').doc('bodega').get();
+      final productosData = productosSnapshot.data();
+
+      if (productosData == null) {
+        await _mostrarDialogoError(
+          'El inventario de la bodega no está disponible.',
+        );
+        return;
+      }
+
+      // Ejemplo de verificación de stock para "Ceviche de camarón"
+      final cevicheCamaron = platosSeleccionados.firstWhereOrNull(
+        (p) => p['nombre'] == 'Ceviche de camarón',
+      );
+
+      if (cevicheCamaron != null) {
+        final stockCamaron = productosData['camarones'] ?? 0;
+        final cantidad = cevicheCamaron['cantidad'];
+        if (stockCamaron < cantidad * 8) {
+          await _mostrarDialogoError('No hay suficientes camarones en bodega.');
+          return;
+        }
+
+        // Descuento del stock
+        await _firestore.collection('productos').doc('bodega').update({
+          'camarones': FieldValue.increment(-(cantidad * 8)),
         });
+      }
+
+      await _firestore.collection('pedidos').add({
+        'items': platosSeleccionados,
+        'fecha': DateTime.now(),
+        'estado': 'pendiente',
+        'creador': _deviceId,
+      });
+
+      setState(() {
+        for (var plato in _menuItems) {
+          plato['cantidad'] = 0;
+        }
+      });
+
+      _saveMenuItems();
+      await _mostrarConfirmacion();
+    } catch (e) {
+      print('Error al guardar el pedido: $e');
+      await _mostrarDialogoError('Hubo un error al guardar el pedido.');
+    }
   }
 
-  void mostrarNotificacion(String titulo) async {
-    const notificationDetails = NotificationDetails();
-
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      '📦 Nuevo Pedido',
-      titulo,
-      notificationDetails,
-    );
-
-    final player = AudioPlayer();
-    await player.play(AssetSource('notificacion.mp3'));
-  }
-
-  // muestra diálogo de error si hay algún problema
   Future<void> _mostrarDialogoError(String mensaje) async {
-    showDialog(
+    await showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.4),
       builder:
@@ -124,231 +231,66 @@ class _MenuPageState extends State<MenuPage> {
               borderRadius: BorderRadius.circular(25),
               opacity: 0.12,
               border: Border.all(color: const Color(0xFF7D91FF), width: 1),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                width: MediaQuery.of(context).size.width * 0.8,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Color(0xFF7D91FF),
-                      size: 48,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Atención',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      mensaje,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white70,
-                        fontSize: 16,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF7D91FF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Entendido'),
-                    ),
-                  ],
-                ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(mensaje, textAlign: TextAlign.center),
               ),
             ),
           ),
     );
   }
 
-  // muestra mensaje de confirmación si el pedido fue exitoso
   Future<void> _mostrarConfirmacion() async {
-    showDialog(
+    await showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.4),
       builder:
-          (_) => Center(
-            child: GlassContainer(
-              blur: 20,
-              opacity: 0.12,
-              borderRadius: BorderRadius.circular(25),
-              shadowStrength: 8,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
+          (_) => AlertDialog(
+            title: const Text('Pedido guardado'),
+            content: const Text('Tu pedido se ha guardado correctamente.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Aceptar'),
               ),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                width: MediaQuery.of(context).size.width * 0.8,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 10),
-                    Text(
-                      '¡Pedido guardado!',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
+            ],
           ),
     );
-  }
-
-  // guarda el pedido en Firestore si hay stock suficiente
-  Future<bool> _guardarPedido() async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final pedidos = firestore.collection('pedidos');
-      final productos = firestore.collection('productos');
-      final platosSeleccionados =
-          _menu.where((p) => p['cantidad'] > 0).toList();
-
-      if (platosSeleccionados.isEmpty) {
-        await _mostrarDialogoError('No has seleccionado ningún plato.');
-        return false;
-      }
-
-      final bodegaSnapshot = await productos.doc('bodega').get();
-      final productosData = bodegaSnapshot.data();
-
-      if (productosData == null) {
-        await _mostrarDialogoError(
-          'El inventario de la bodega no está disponible.',
-        );
-        return false;
-      }
-
-      final cevicheCamaronCantidad = _menu[0]['cantidad'];
-      final stockCamaron = (productosData['camarones'] as int?) ?? 0;
-
-      if (cevicheCamaronCantidad > 0 &&
-          stockCamaron < cevicheCamaronCantidad * 8) {
-        await _mostrarDialogoError('No hay suficientes camarones en bodega.');
-        return false;
-      }
-
-      await pedidos.add({
-        'items':
-            platosSeleccionados
-                .map((p) => {'nombre': p['nombre'], 'cantidad': p['cantidad']})
-                .toList(),
-        'fecha': FieldValue.serverTimestamp(),
-      });
-
-      if (cevicheCamaronCantidad > 0) {
-        await productos.doc('bodega').update({
-          'camarones': FieldValue.increment(-(cevicheCamaronCantidad * 8)),
-        });
-      }
-
-      setState(() {
-        for (var plato in _menu) {
-          plato['cantidad'] = 0;
-        }
-      });
-
-      if (!mounted) return true;
-
-      await _mostrarConfirmacion();
-      return true;
-    } catch (e) {
-      print('Error al guardar el pedido: $e');
-      await _mostrarDialogoError('Error al guardar el pedido.');
-      return false;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          'Menú de la Cevichería',
-          style: GoogleFonts.merriweather(fontWeight: FontWeight.bold),
+          'Menú',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: AppTheme.backgroundColor,
-        elevation: 0,
-
-        scrolledUnderElevation: 0,
+        actions: [
+          IconButton(icon: const Icon(Icons.save), onPressed: _guardarPedido),
+        ],
       ),
       body: ListView.builder(
-        itemCount: _menu.length,
+        itemCount: _menuItems.length,
         itemBuilder: (context, index) {
-          final plato = _menu[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-            child: GlassContainer(
-              blur: 18,
-              opacity: 0.15,
-              borderRadius: BorderRadius.circular(20),
-              shadowStrength: 8,
-
-              // esta linea crea cada tarjeta de plato
-              child: ListTile(
-                title: Text(
-                  plato['nombre'],
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
-                    color: Colors.white,
-                    decoration: TextDecoration.none,
-                  ),
+          final item = _menuItems[index];
+          return ListTile(
+            title: Text(item['nombre'], style: GoogleFonts.poppins()),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove),
+                  onPressed: () => _restar(index),
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: () => _restar(index),
-                      icon: const Icon(Icons.remove, color: Colors.white70),
-                    ),
-                    Text(
-                      '${plato['cantidad']}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    IconButton(
-                      onPressed: () => _sumar(index),
-                      icon: const Icon(Icons.add, color: Colors.white),
-                    ),
-                  ],
+                Text('${item['cantidad']}', style: GoogleFonts.poppins()),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _sumar(index),
                 ),
-              ),
+              ],
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _guardarPedido,
-        backgroundColor: AppTheme.primaryColor,
-        label: const Text('Confirmar Pedido'),
-        icon: const Icon(Icons.send),
       ),
     );
   }

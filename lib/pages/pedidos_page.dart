@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class PedidosPage extends StatefulWidget {
   const PedidosPage({super.key});
@@ -12,14 +15,79 @@ class PedidosPage extends StatefulWidget {
 }
 
 class _PedidosPageState extends State<PedidosPage> {
+  final _player = AudioPlayer();
+  final _notifications = FlutterLocalNotificationsPlugin();
   final formatFecha = DateFormat('dd/MM/yyyy HH:mm');
-
   final Map<String, bool> _expandido = {
     'pendiente': true,
     'listo': true,
     'entregado': false,
     'anulado': false,
   };
+
+  Set<String> _vistoPedidosIds = {};
+  String _currentDeviceId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initNotifications();
+    _loadDeviceId();
+  }
+
+  void _initNotifications() {
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    const initSettings = InitializationSettings(android: androidSettings);
+    _notifications.initialize(initSettings);
+  }
+
+  void _showNotification() {
+    const androidDetails = AndroidNotificationDetails(
+      'canal_pedidos',
+      'Pedidos Nuevos',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: false,
+    );
+    const notifDetails = NotificationDetails(android: androidDetails);
+    _notifications.show(
+      0,
+      'Nuevo Pedido',
+      'Se agregó un nuevo pedido',
+      notifDetails,
+    );
+  }
+
+  void _reproducirSonido() async {
+    await _player.setAsset('assets/sonidos/nuevo_pedido.mp3');
+    _player.play();
+  }
+
+  void _loadDeviceId() async {
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    setState(() {
+      _currentDeviceId = androidInfo.id;
+    });
+  }
+
+  void _manejarNuevosPedidos(List<QueryDocumentSnapshot> docs) {
+    for (var doc in docs) {
+      final pedidoId = doc.id;
+      final data = doc.data() as Map<String, dynamic>;
+      final creadorId = data['deviceId'] ?? '';
+
+      if (!_vistoPedidosIds.contains(pedidoId)) {
+        _vistoPedidosIds.add(pedidoId);
+        if (creadorId != _currentDeviceId) {
+          _reproducirSonido();
+          _showNotification();
+        }
+      }
+    }
+  }
 
   IconData getEstadoIcon(String estado) {
     switch (estado) {
@@ -72,7 +140,6 @@ class _PedidosPageState extends State<PedidosPage> {
         title: const Text('Pedidos en Vivo'),
         backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
-        // Esta línea elimina cualquier sombra que aparezca al hacer scroll.
         scrolledUnderElevation: 0,
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -90,6 +157,9 @@ class _PedidosPageState extends State<PedidosPage> {
             return const Center(child: Text('No hay pedidos aún.'));
           }
 
+          final docs = snapshot.data!.docs;
+          _manejarNuevosPedidos(docs);
+
           final pedidosPorEstado = <String, List<DocumentSnapshot>>{
             'pendiente': [],
             'listo': [],
@@ -97,11 +167,9 @@ class _PedidosPageState extends State<PedidosPage> {
             'anulado': [],
           };
 
-          for (var doc in snapshot.data!.docs) {
-            final pedido = doc.data() as Map<String, dynamic>;
-
-            final estado = (pedido['estado'] ?? 'pendiente') as String;
-
+          for (var doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final estado = (data['estado'] ?? 'pendiente') as String;
             pedidosPorEstado[estado]?.add(doc);
           }
 
@@ -110,7 +178,7 @@ class _PedidosPageState extends State<PedidosPage> {
             children:
                 pedidosPorEstado.entries.expand((entry) {
                   final estado = entry.key;
-                  final docs = entry.value;
+                  final estadoDocs = entry.value;
 
                   return [
                     GestureDetector(
@@ -148,13 +216,13 @@ class _PedidosPageState extends State<PedidosPage> {
                         ),
                       ),
                     ),
-                    if (_expandido[estado]! && docs.isNotEmpty)
-                      ...docs.map((doc) {
+                    if (_expandido[estado]! && estadoDocs.isNotEmpty)
+                      ...estadoDocs.map((doc) {
                         final pedido = doc.data() as Map<String, dynamic>;
                         final items =
                             (pedido['items'] ?? []) as List<dynamic>? ?? [];
                         final fecha = (pedido['fecha'] as Timestamp?)?.toDate();
-                        final estado =
+                        final estadoActual =
                             (pedido['estado'] ?? 'pendiente') as String;
 
                         return Padding(
@@ -167,7 +235,7 @@ class _PedidosPageState extends State<PedidosPage> {
                             opacity: 0.2,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Colors.white24),
-                            color: getEstadoColor(estado),
+                            color: getEstadoColor(estadoActual),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
@@ -193,7 +261,7 @@ class _PedidosPageState extends State<PedidosPage> {
                                       );
                                     }
                                     return const Text('Item inválido');
-                                  }).toList(),
+                                  }),
                                   const SizedBox(height: 10),
                                   Row(
                                     mainAxisAlignment:
@@ -201,7 +269,7 @@ class _PedidosPageState extends State<PedidosPage> {
                                     children: [
                                       const Text('Estado:'),
                                       DropdownButton<String>(
-                                        value: estado,
+                                        value: estadoActual,
                                         items: const [
                                           DropdownMenuItem(
                                             value: 'pendiente',
@@ -230,7 +298,7 @@ class _PedidosPageState extends State<PedidosPage> {
                                       ),
                                     ],
                                   ),
-                                  if (estado != 'anulado')
+                                  if (estadoActual != 'anulado')
                                     Align(
                                       alignment: Alignment.centerRight,
                                       child: TextButton.icon(

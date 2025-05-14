@@ -19,6 +19,9 @@ dependencies:
   iconly: ^1.0.1
   flutter_local_notifications: ^17.1.2
   audioplayers: ^5.2.1
+  device_info_plus: ^11.4.0
+  just_audio: ^0.10.2
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
