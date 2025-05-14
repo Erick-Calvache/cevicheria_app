@@ -79,10 +79,11 @@ class _PedidosPageState extends State<PedidosPage> {
       final data = doc.data() as Map<String, dynamic>;
       final creadorId = data['deviceId'] ?? '';
 
+      // Solo mostrar notificación y reproducir sonido si es un nuevo pedido no visto
       if (!_vistoPedidosIds.contains(pedidoId)) {
         _vistoPedidosIds.add(pedidoId);
         if (creadorId != _currentDeviceId) {
-          _reproducirSonido();
+          _reproducirSonido(); // Solo suena si no es un pedido ya visto
           _showNotification();
         }
       }

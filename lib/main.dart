@@ -8,16 +8,27 @@ import 'theme.dart';
 import 'pages/intro_page.dart';
 import 'pages/home_page.dart';
 import 'pages/menu_page.dart';
+import 'pages/pedidos_page.dart'; // Asegúrate de importar la página de pedidos
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform, // ✅ Aquí también
   );
-  _showNotification(
-    message.notification?.title ?? '',
-    message.notification?.body ?? '',
-  );
+
+  if (message.data.isNotEmpty) {
+    // Notificación de tipo "data"
+    _showNotification(
+      message.data['title'] ?? 'Título desconocido',
+      message.data['body'] ?? 'Cuerpo desconocido',
+    );
+  } else if (message.notification != null) {
+    // Notificación estándar
+    _showNotification(
+      message.notification?.title ?? 'Título desconocido',
+      message.notification?.body ?? 'Cuerpo desconocido',
+    );
+  }
 }
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -31,6 +42,9 @@ Future<void> _showNotification(String title, String body) async {
         importance: Importance.max,
         priority: Priority.high,
         ticker: 'ticker',
+        sound: RawResourceAndroidNotificationSound(
+          'default',
+        ), // Asegúrate de usar el sonido por defecto
       );
 
   const NotificationDetails platformChannelSpecifics = NotificationDetails(
@@ -50,10 +64,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   print("🟢 Iniciando app cevicheria...");
 
-  await Firebase.initializeApp(
-    options:
-        DefaultFirebaseOptions.currentPlatform, // ✅ Esto era lo que faltaba
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   NotificationSettings settings = await messaging.requestPermission(
@@ -108,6 +119,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const IntroPage(),
         '/main': (context) => const HomePage(),
         '/menu': (context) => const MenuPage(),
+        '/pedidos': (context) => const PedidosPage(),
       },
       debugShowCheckedModeBanner: false,
     );
