@@ -25,7 +25,7 @@ class _PedidosPageState extends State<PedidosPage> {
     'anulado': false,
   };
 
-  Set<String> _vistoPedidosIds = {};
+  final Set<String> _vistoPedidosIds = {};
   String _currentDeviceId = '';
 
   @override

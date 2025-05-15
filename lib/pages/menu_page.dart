@@ -1,4 +1,5 @@
 import 'package:cevicheria_app/theme.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,7 +9,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../main.dart'; // si la instancia `flutterLocalNotificationsPlugin` está en main.dart
@@ -37,8 +37,11 @@ class _MenuPageState extends State<MenuPage> {
     {'nombre': 'Ceviche de pescado', 'cantidad': 0},
     {'nombre': 'Ceviche de concha', 'cantidad': 0},
     {'nombre': 'Ceviche de pulpa de cangrejo', 'cantidad': 0},
-    {'nombre': 'Ceviche mixto', 'cantidad': 0},
-    {'nombre': 'Ceviche trimixto', 'cantidad': 0},
+    {'nombre': 'Ceviche mixto de camarón con concha', 'cantidad': 0},
+    {'nombre': 'Ceviche mixto de camarón con calamar', 'cantidad': 0},
+    {'nombre': 'Ceviche mixto de camarón con pescado', 'cantidad': 0},
+    {'nombre': 'Ceviche trimixto de camarón, concha y calamar', 'cantidad': 0},
+    {'nombre': 'Ceviche trimixto de camarón, concha y pescado', 'cantidad': 0},
     {'nombre': 'Ceviche rompecolchón', 'cantidad': 0},
     {'nombre': 'Ceviche rompeombligo', 'cantidad': 0},
     {'nombre': 'Viche de cangrejo', 'cantidad': 0},
@@ -202,25 +205,19 @@ class _MenuPageState extends State<MenuPage> {
   Future<void> _guardarPedido() async {
     try {
       final platosSeleccionados =
-          _menuItems.where((p) => p['cantidad'] > 0).toList();
+          _menuItems.where((item) => item['cantidad'] > 0).toList();
 
       if (platosSeleccionados.isEmpty) {
-        await _mostrarDialogoError('No se ha seleccionado ningún plato.');
+        await _mostrarDialogoError('Debes seleccionar al menos un plato.');
         return;
       }
 
-      final productosSnapshot =
+      // Obtener stock actual
+      final snapshot =
           await _firestore.collection('productos').doc('bodega').get();
-      final productosData = productosSnapshot.data();
+      final productosData = snapshot.data() ?? {};
 
-      if (productosData == null) {
-        await _mostrarDialogoError(
-          'El inventario de la bodega no está disponible.',
-        );
-        return;
-      }
-
-      // Ejemplo de verificación de stock para "Ceviche de camarón"
+      // Verificación de stock para "Ceviche de camarón"
       final cevicheCamaron = platosSeleccionados.firstWhereOrNull(
         (p) => p['nombre'] == 'Ceviche de camarón',
       );
@@ -233,12 +230,13 @@ class _MenuPageState extends State<MenuPage> {
           return;
         }
 
-        // Descuento del stock
+        // Descontar del stock
         await _firestore.collection('productos').doc('bodega').update({
           'camarones': FieldValue.increment(-(cantidad * 8)),
         });
       }
 
+      // Guardar el pedido en Firestore
       await _firestore.collection('pedidos').add({
         'items': platosSeleccionados,
         'fecha': DateTime.now(),
@@ -246,6 +244,7 @@ class _MenuPageState extends State<MenuPage> {
         'creador': _deviceId,
       });
 
+      // Limpiar cantidades seleccionadas
       setState(() {
         for (var plato in _menuItems) {
           plato['cantidad'] = 0;
@@ -254,11 +253,15 @@ class _MenuPageState extends State<MenuPage> {
 
       _saveMenuItems();
       await _mostrarConfirmacion();
-    } catch (e) {
-      print('Error al guardar el pedido: $e');
+    } catch (e, stacktrace) {
+      if (kDebugMode) {
+        debugPrint('Error al guardar el pedido: $e\n$stacktrace');
+      }
       await _mostrarDialogoError('Hubo un error al guardar el pedido.');
     }
   }
+
+  // Ejemplo de verificación de stock para "Ceviche de camarón"
 
   Future<void> _mostrarDialogoError(String mensaje) async {
     await showDialog(
@@ -274,7 +277,11 @@ class _MenuPageState extends State<MenuPage> {
               border: Border.all(color: const Color(0xFF7D91FF), width: 1),
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: Text(mensaje, textAlign: TextAlign.center),
+                child: Text(
+                  mensaje,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(fontSize: 16),
+                ),
               ),
             ),
           ),

@@ -23,8 +23,8 @@ class _ProductosPageState extends State<ProductosPage> {
     int? cantidadInicial,
     required Function(String, int) onGuardar,
   }) {
-    final _nombreController = TextEditingController(text: nombreInicial ?? '');
-    final _cantidadController = TextEditingController(
+    final nombreController = TextEditingController(text: nombreInicial ?? '');
+    final cantidadController = TextEditingController(
       text: cantidadInicial?.toString() ?? '',
     );
 
@@ -60,7 +60,7 @@ class _ProductosPageState extends State<ProductosPage> {
                     children: [
                       if (nombreInicial == null)
                         TextField(
-                          controller: _nombreController,
+                          controller: nombreController,
                           decoration: const InputDecoration(
                             labelText: 'Nombre',
                             labelStyle: TextStyle(color: Colors.white70),
@@ -72,7 +72,7 @@ class _ProductosPageState extends State<ProductosPage> {
                         ),
                       const SizedBox(height: 10),
                       TextField(
-                        controller: _cantidadController,
+                        controller: cantidadController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: 'Cantidad',
@@ -96,9 +96,9 @@ class _ProductosPageState extends State<ProductosPage> {
                     ElevatedButton(
                       onPressed: () {
                         final nombre =
-                            _nombreController.text.trim().toLowerCase();
+                            nombreController.text.trim().toLowerCase();
                         final cantidad = int.tryParse(
-                          _cantidadController.text.trim(),
+                          cantidadController.text.trim(),
                         );
 
                         if ((nombre.isEmpty && nombreInicial == null) ||

@@ -62,7 +62,6 @@ Future<void> _showNotification(String title, String body) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  print("🟢 Iniciando app cevicheria...");
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
