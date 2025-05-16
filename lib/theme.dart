@@ -17,7 +17,6 @@ class AppTheme {
         primary: primaryColor,
         secondary: secondaryColor,
         surface: cardColor,
-        background: backgroundColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white70,
         onSurface: Colors.white,

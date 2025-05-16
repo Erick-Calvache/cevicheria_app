@@ -1,5 +1,5 @@
+import 'package:cevicheria_app/pages/menu_page.dart';
 import 'package:flutter/material.dart';
-import 'main.dart';
 import 'pedidos_page.dart';
 import 'productos_page.dart';
 
@@ -107,12 +107,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               iconData,
                               color:
                                   isSelected
-                                      ? const Color.fromARGB(
-                                        255,
-                                        125,
-                                        145,
-                                        255,
-                                      ).withOpacity(0.9)
+                                      ? const Color.fromARGB(255, 125, 145, 255)
                                       : const Color.fromARGB(
                                         100,
                                         255,
@@ -130,7 +125,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           125,
                                           145,
                                           255,
-                                        ).withOpacity(0.9)
+                                        )
                                         : const Color.fromARGB(
                                           100,
                                           255,
