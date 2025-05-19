@@ -29,6 +29,7 @@ class _MenuPageState extends State<MenuPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AudioPlayer player = AudioPlayer();
   final TextEditingController _searchController = TextEditingController();
+
   String _searchTerm = '';
   bool _isSearching = false;
 
@@ -36,22 +37,23 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   void initState() {
+    super.initState();
     FirebaseMessaging.instance.requestPermission(); // Pide permisos
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _mostrarNotificacion(
-        message.notification?.title ?? '',
-        message.notification?.body ?? '',
-      );
-    });
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {});
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       // Maneja cuando abren la app desde la notificación
     });
 
-    super.initState();
     _inicializar();
     _cargarPlatosDesdeFirestore();
+  }
+
+  @override
+  void dispose() {
+    player.dispose(); // liberar recursos del audio
+    super.dispose();
   }
 
   Future<void> _inicializar() async {
@@ -112,15 +114,70 @@ class _MenuPageState extends State<MenuPage> {
     });
   }
 
+  void _loadVistosDesdeLocal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final vistos = prefs.getStringList('vistos') ?? [];
+    setState(() {
+      _vistoPedidosIds = vistos.toSet();
+    });
+  }
+
   void _escucharPedidos() {
-    _firestore.collection('pedidos').snapshots().listen((snapshot) {
+    _firestore.collection('pedidos').snapshots().listen((snapshot) async {
+      final prefs = await SharedPreferences.getInstance();
+
       for (final docChange in snapshot.docChanges) {
         if (docChange.type == DocumentChangeType.added) {
+          final pedidoId = docChange.doc.id;
+
+          // Si ya se reprodujo para este pedido, no repetir
+          if (_vistoPedidosIds.contains(pedidoId)) {
+            print("Pedido $pedidoId ya fue notificado.");
+            continue;
+          }
+
           final data = docChange.doc.data()!;
           final fecha = (data['fecha'] as Timestamp).toDate();
           final creador = data['creador'];
+
+          print("Nuevo pedido detectado:");
+          print("- ID: $pedidoId");
+          print("- Fecha: $fecha");
+          print("- Creador: $creador");
+          print("- Mi deviceId: $_deviceId");
+          print("- AppInitTime: $_appInitTime");
+
           if (fecha.isAfter(_appInitTime!) && creador != _deviceId) {
-            player.play(AssetSource('notificacion.mp3'));
+            print(
+              "✅ Requisitos cumplidos: se reproducirá notificación sonora.",
+            );
+
+            try {
+              // Reproducir sonido de notificación solo una vez
+              await player.play(AssetSource('notificacion.mp3'));
+
+              // Guardar el pedido como visto para no sonar otra vez
+              _vistoPedidosIds.add(pedidoId);
+              await prefs.setStringList('vistos', _vistoPedidosIds.toList());
+
+              if (kDebugMode) {
+                print(
+                  '🔔 Notificación sonora reproducida para pedido $pedidoId',
+                );
+              }
+            } catch (e) {
+              if (kDebugMode) {
+                print('❌ Error al reproducir sonido: $e');
+              }
+            }
+          } else {
+            print("⛔ Requisitos NO cumplidos: NO se reproducirá sonido.");
+            if (!fecha.isAfter(_appInitTime!)) {
+              print("  - La fecha del pedido es anterior al inicio de la app.");
+            }
+            if (creador == _deviceId) {
+              print("  - El pedido fue creado desde este mismo dispositivo.");
+            }
           }
         }
       }
@@ -148,6 +205,14 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
+  void limpiarVistos() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('vistos');
+    setState(() {
+      _vistoPedidosIds.clear();
+    });
+  }
+
   Future<void> _loadMenuItems() async {
     final query = await _firestore.collection('platos').get();
     final items =
@@ -171,18 +236,13 @@ class _MenuPageState extends State<MenuPage> {
     await prefs.setStringList('menuItems', jsonList);
   }
 
-  void _loadVistosDesdeLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final vistos = prefs.getStringList('vistos') ?? [];
-    setState(() {
-      _vistoPedidosIds = vistos.toSet();
-    });
-  }
-
   void _guardarPedidoVisto(String id) async {
     final prefs = await SharedPreferences.getInstance();
     _vistoPedidosIds.add(id);
     await prefs.setStringList('vistos', _vistoPedidosIds.toList());
+    print(
+      "Nuevo pedido detectado: $id, ¿ya visto?: ${_vistoPedidosIds.contains(id)}",
+    );
   }
 
   void _sumar(int index) {
@@ -372,12 +432,6 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final filteredItems =
         _menuItems.where((item) {
@@ -385,6 +439,7 @@ class _MenuPageState extends State<MenuPage> {
           if (nombre == null) return false;
           return nombre.toLowerCase().contains(_searchTerm);
         }).toList();
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -446,7 +501,6 @@ class _MenuPageState extends State<MenuPage> {
                         },
                       ),
             ),
-
             // Título centrado, que no se mueve
           ],
         ),
@@ -470,9 +524,8 @@ class _MenuPageState extends State<MenuPage> {
           );
           _cargarPlatosDesdeFirestore(); // Recarga el menú al volver
         },
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
-
       body:
           filteredItems.isEmpty
               ? Center(
@@ -485,7 +538,6 @@ class _MenuPageState extends State<MenuPage> {
                 itemCount: filteredItems.length,
                 itemBuilder: (context, index) {
                   final item = filteredItems[index];
-
                   return Card(
                     margin: const EdgeInsets.symmetric(
                       horizontal: 12,

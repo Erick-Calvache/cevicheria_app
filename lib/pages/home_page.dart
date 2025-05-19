@@ -3,6 +3,8 @@ import 'package:cevicheria_app/pages/pedidos_page.dart';
 import 'package:cevicheria_app/pages/productos_page.dart';
 import 'package:cevicheria_app/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import 'package:cevicheria_app/pages/circle_notch_painter.dart';
 
 class HomePage extends StatefulWidget {
@@ -53,141 +55,159 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
-      backgroundColor: const Color.fromARGB(255, 19, 18, 18),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-        child: SizedBox(
-          height: 75,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double width = constraints.maxWidth;
+      // Eliminamos backgroundColor aquí
+      body: Stack(
+        children: [
+          // Fondo rojo
+          Container(color: const Color.fromARGB(255, 172, 21, 21)),
 
-              final double itemWidth = width / 3;
-              final double circleLeft =
-                  itemWidth * _selectedIndex + itemWidth / 2 - 21.5;
-              final double circleTop = 7;
+          // Página activa
+          Positioned.fill(child: _pages[_selectedIndex]),
 
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // Notch
-                  CustomPaint(
-                    size: Size(width, 75),
-                    painter: BottomNavPainter(notchX: circleLeft + 21.5),
-                  ),
+          // Notch y navegación
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 30,
+                  vertical: 15,
+                ),
+                child: SizedBox(
+                  height: 75,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double width = constraints.maxWidth;
+                      final double itemWidth = width / 3;
+                      final double circleLeft =
+                          itemWidth * _selectedIndex + itemWidth / 2 - 21.5;
+                      final double circleTop = 7;
 
-                  // Círculo animado
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    left: circleLeft,
-                    top: circleTop,
-                    child: Container(
-                      width: 43,
-                      height: 43,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 33, 33, 33),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppTheme.primaryColor,
-                          width: 3,
-                        ),
-                      ),
-                    ),
-                  ),
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Notch pintado
+                          CustomPaint(
+                            size: Size(width, 75),
+                            painter: BottomNavPainter(
+                              notchX: circleLeft + 21.5,
+                            ),
+                          ),
 
-                  // Íconos posicionados manualmente
-                  ...List.generate(3, (index) {
-                    IconData iconData;
-                    String label;
+                          // Círculo animado
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            left: circleLeft,
+                            top: circleTop,
+                            child: Container(
+                              width: 43,
+                              height: 43,
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 33, 33, 33),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppTheme.primaryColor,
+                                  width: 3,
+                                ),
+                              ),
+                            ),
+                          ),
 
-                    switch (index) {
-                      case 0:
-                        iconData = Icons.restaurant_menu_rounded;
-                        label = 'Menú';
-                        break;
-                      case 1:
-                        iconData = Icons.receipt_long_rounded;
-                        label = 'Pedidos';
-                        break;
-                      case 2:
-                      default:
-                        iconData = Icons.inventory_2_rounded;
-                        label = 'Bodega';
-                        break;
-                    }
+                          // Íconos
+                          ...List.generate(3, (index) {
+                            IconData iconData;
+                            String label;
 
-                    final isSelected = _selectedIndex == index;
-
-                    final iconX = width * iconPositions[index]['x']!;
-                    final iconY = 75 * iconPositions[index]['y']!;
-
-                    return Positioned(
-                      left: iconX - 25,
-                      top: iconY - 24,
-                      child: GestureDetector(
-                        onTap: () => _onItemTapped(index),
-                        child: AnimatedBuilder(
-                          animation: _animation,
-                          builder: (context, child) {
-                            double offsetY = 0;
-                            if (_selectedIndex == index) {
-                              offsetY = -8 * _animation.value; // sube y baja
+                            switch (index) {
+                              case 0:
+                                iconData = Icons.restaurant_menu_rounded;
+                                label = 'Menú';
+                                break;
+                              case 1:
+                                iconData = Icons.receipt_long_rounded;
+                                label = 'Pedidos';
+                                break;
+                              case 2:
+                              default:
+                                iconData = Icons.inventory_2_rounded;
+                                label = 'Bodega';
+                                break;
                             }
-                            return Transform.translate(
-                              offset: Offset(0, offsetY),
-                              child: child,
-                            );
-                          },
-                          child: SizedBox(
-                            width: 50,
-                            height:
-                                50, // altura fija para evitar que todo el botón se mueva
-                            child: Stack(
-                              alignment: Alignment.topCenter,
-                              children: [
-                                AnimatedBuilder(
+
+                            final isSelected = _selectedIndex == index;
+                            final iconX = width * iconPositions[index]['x']!;
+                            final iconY = 75 * iconPositions[index]['y']!;
+
+                            return Positioned(
+                              left: iconX - 25,
+                              top: iconY - 24,
+                              child: GestureDetector(
+                                onTap: () => _onItemTapped(index),
+                                child: AnimatedBuilder(
                                   animation: _animation,
-                                  builder: (context, childIcon) {
+                                  builder: (context, child) {
                                     double offsetY = 0;
                                     if (_selectedIndex == index) {
                                       offsetY = -8 * _animation.value;
                                     }
                                     return Transform.translate(
                                       offset: Offset(0, offsetY),
-                                      child: childIcon,
+                                      child: child,
                                     );
                                   },
-                                  child: Icon(
-                                    iconData,
-                                    size: 24,
-                                    color: AppTheme.primaryColor,
-                                  ),
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  child: Text(
-                                    label,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.primaryColor,
+                                  child: SizedBox(
+                                    width: 50,
+                                    height: 50,
+                                    child: Stack(
+                                      alignment: Alignment.topCenter,
+                                      children: [
+                                        AnimatedBuilder(
+                                          animation: _animation,
+                                          builder: (context, childIcon) {
+                                            double offsetY = 0;
+                                            if (_selectedIndex == index) {
+                                              offsetY = -8 * _animation.value;
+                                            }
+                                            return Transform.translate(
+                                              offset: Offset(0, offsetY),
+                                              child: childIcon,
+                                            );
+                                          },
+                                          child: Icon(
+                                            iconData,
+                                            size: 24,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          bottom: 0,
+                                          child: Text(
+                                            label,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.primaryColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ],
-              );
-            },
+                              ),
+                            );
+                          }),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
