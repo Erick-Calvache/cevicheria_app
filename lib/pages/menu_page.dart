@@ -9,6 +9,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
+import 'package:cevicheria_app/pages/agregarplatos_page.dart';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../main.dart'; // si la instancia `flutterLocalNotificationsPlugin` está en main.dart
@@ -31,56 +33,7 @@ class _MenuPageState extends State<MenuPage> {
   String _searchTerm = '';
   bool _isSearching = false;
 
-  List<Map<String, dynamic>> _menuItems = [
-    {'nombre': 'Ceviche de camarón', 'cantidad': 0},
-    {'nombre': 'Ceviche de calamar', 'cantidad': 0},
-    {'nombre': 'Ceviche de pescado', 'cantidad': 0},
-    {'nombre': 'Ceviche de concha', 'cantidad': 0},
-    {'nombre': 'Ceviche de pulpa de cangrejo', 'cantidad': 0},
-    {'nombre': 'Ceviche mixto de camarón con concha', 'cantidad': 0},
-    {'nombre': 'Ceviche mixto de camarón con calamar', 'cantidad': 0},
-    {'nombre': 'Ceviche mixto de camarón con pescado', 'cantidad': 0},
-    {'nombre': 'Ceviche trimixto de camarón, concha y calamar', 'cantidad': 0},
-    {'nombre': 'Ceviche trimixto de camarón, concha y pescado', 'cantidad': 0},
-    {'nombre': 'Ceviche rompecolchón', 'cantidad': 0},
-    {'nombre': 'Ceviche rompeombligo', 'cantidad': 0},
-    {'nombre': 'Viche de cangrejo', 'cantidad': 0},
-    {'nombre': 'Viche de camarón', 'cantidad': 0},
-    {'nombre': 'Viche de pescado', 'cantidad': 0},
-    {'nombre': 'Tres al hilo', 'cantidad': 0},
-    {'nombre': 'Encebollado normal', 'cantidad': 0},
-    {'nombre': '1/2 encebollado normal', 'cantidad': 0},
-    {'nombre': 'Encebollado mixto', 'cantidad': 0},
-    {'nombre': 'Encebollado trimixto', 'cantidad': 0},
-    {'nombre': 'Encebollado maritimo', 'cantidad': 0},
-    {'nombre': 'Arroz con camarón', 'cantidad': 0},
-    {'nombre': '1/2 arroz con camarón', 'cantidad': 0},
-    {'nombre': 'Arroz con concha', 'cantidad': 0},
-    {'nombre': '1/2 arroz con concha', 'cantidad': 0},
-    {'nombre': 'Arroz mixto', 'cantidad': 0},
-    {'nombre': 'Arroz trimixto', 'cantidad': 0},
-    {'nombre': 'Arroz rompe', 'cantidad': 0},
-    {'nombre': 'Combo económico', 'cantidad': 0},
-    {'nombre': 'Combo pata gorda', 'cantidad': 0},
-    {'nombre': 'Sopa especial de pulpa de cangrejo', 'cantidad': 0},
-    {'nombre': 'Tenazas de cangrejo', 'cantidad': 0},
-    {'nombre': 'Combo friends (3 personas)', 'cantidad': 0},
-    {'nombre': 'Combo súper (3 personas)', 'cantidad': 0},
-    {'nombre': 'Combo familiar (4 personas)', 'cantidad': 0},
-    {'nombre': 'Combo Jumbo familiar (5 personas)', 'cantidad': 0},
-    {'nombre': 'Cangreviche', 'cantidad': 0},
-    {'nombre': 'La gamba', 'cantidad': 0},
-    {'nombre': 'Chicharrón de pescado', 'cantidad': 0},
-    {'nombre': 'Corvina encocado', 'cantidad': 0},
-    {'nombre': 'Camarón encocado', 'cantidad': 0},
-    {'nombre': 'Picaditas de mariscos', 'cantidad': 0},
-    {'nombre': 'Volcán de camarón', 'cantidad': 0},
-    {'nombre': 'Filete de corvina', 'cantidad': 0},
-    {'nombre': 'Camarones apanados', 'cantidad': 0},
-    {'nombre': 'Conchas asadas', 'cantidad': 0},
-    {'nombre': 'Entre panas', 'cantidad': 0},
-    {'nombre': 'Mix de mariscos', 'cantidad': 0},
-  ];
+  List<Map<String, dynamic>> _menuItems = [];
 
   @override
   void initState() {
@@ -99,6 +52,7 @@ class _MenuPageState extends State<MenuPage> {
 
     super.initState();
     _inicializar();
+    _cargarPlatosDesdeFirestore();
   }
 
   Future<void> _inicializar() async {
@@ -112,6 +66,59 @@ class _MenuPageState extends State<MenuPage> {
     _loadVistosDesdeLocal();
     _loadMenuItems();
     _escucharPedidos();
+  }
+
+  Future<void> _mostrarDialogoError(String mensaje) async {
+    await showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(mensaje),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _mostrarConfirmacion(double total) async {
+    await showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Valor total'),
+            content: Text('Total a cobrar: \$${total.toStringAsFixed(2)}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Aceptar'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _cargarPlatosDesdeFirestore() async {
+    final snapshot =
+        await FirebaseFirestore.instance.collection('platos').get();
+
+    final platos =
+        snapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'nombre': data['nombre'],
+            'cantidad': 0, // Por defecto 0 al mostrar en el menú
+          };
+        }).toList();
+
+    setState(() {
+      _menuItems = platos;
+    });
   }
 
   void _escucharPedidos() {
@@ -150,19 +157,20 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  void _loadMenuItems() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> jsonList = prefs.getStringList('menuItems') ?? [];
-    final List<Map<String, dynamic>> loadedItems =
-        jsonList
-            .map((jsonStr) => Map<String, dynamic>.from(jsonDecode(jsonStr)))
-            .toList();
+  Future<void> _loadMenuItems() async {
+    final query = await _firestore.collection('platos').get();
+    final items =
+        query.docs.map((doc) {
+          final nombre =
+              doc.data().containsKey('nombre') ? doc['nombre'] : 'Sin nombre';
+          return {'id': doc.id, 'nombre': nombre, 'cantidad': 0};
+        }).toList();
 
     setState(() {
-      if (loadedItems.isNotEmpty) {
-        _menuItems = loadedItems;
-      }
+      _menuItems = items;
     });
+
+    _saveMenuItems(); // Opcional: actualiza localmente
   }
 
   void _saveMenuItems() async {
@@ -217,34 +225,145 @@ class _MenuPageState extends State<MenuPage> {
           await _firestore.collection('productos').doc('bodega').get();
       final productosData = snapshot.data() ?? {};
 
-      // Verificación de stock para "Ceviche de camarón"
-      final cevicheCamaron = platosSeleccionados.firstWhereOrNull(
-        (p) => p['nombre'] == 'Ceviche de camarón',
-      );
+      // Mapa para acumular requerimientos totales de ingredientes
+      // Mapa para acumular requerimientos totales de ingredientes
+      Map<String, num> requerimientosTotales = {};
 
-      if (cevicheCamaron != null) {
-        final stockCamaron = productosData['camarones'] ?? 0;
-        final cantidad = cevicheCamaron['cantidad'];
-        if (stockCamaron < cantidad * 8) {
-          await _mostrarDialogoError('No hay suficientes camarones en bodega.');
+      // 1. Calcular los ingredientes necesarios en total
+      for (var plato in platosSeleccionados) {
+        final cantidadPedida = int.tryParse(plato['cantidad'].toString()) ?? 0;
+
+        final docPlato =
+            await _firestore.collection('platos').doc(plato['id']).get();
+        if (!docPlato.exists) {
+          if (kDebugMode) {
+            debugPrint('ID no encontrado: ${plato['id']}');
+          }
+          await _mostrarDialogoError(
+            'El plato "${plato['nombre']}" no existe en la base de datos (ID: ${plato['id']}).',
+          );
           return;
         }
 
-        // Descontar del stock
-        await _firestore.collection('productos').doc('bodega').update({
-          'camarones': FieldValue.increment(-(cantidad * 8)),
-        });
+        final dataPlato = docPlato.data() ?? {};
+
+        print('Plato: ${plato['nombre']} - Cantidad pedida: $cantidadPedida');
+        print('Ingredientes del plato: $dataPlato');
+
+        for (var entry in dataPlato.entries) {
+          final nombreIngrediente = entry.key;
+          final valor = entry.value;
+
+          // Filtrar campos no numéricos o que no sean ingredientes
+          if (nombreIngrediente == 'nombre' || nombreIngrediente == 'precio') {
+            continue; // Ignorar estos campos
+          }
+
+          final cantidadPorUnidad = num.tryParse(valor.toString()) ?? 0;
+
+          requerimientosTotales[nombreIngrediente] =
+              (requerimientosTotales[nombreIngrediente] ?? 0) +
+              (cantidadPorUnidad * cantidadPedida);
+        }
+      }
+      // 2. Preparar los nuevos valores para actualizar el stock en Firestore
+      Map<String, dynamic> nuevosValoresStock = {};
+
+      requerimientosTotales.forEach((ingrediente, cantidad) {
+        final stockActual = productosData[ingrediente] ?? 0;
+        nuevosValoresStock[ingrediente] = stockActual - cantidad;
+      });
+
+      // 3. Actualizar la colección productos -> documento bodega
+      await _firestore
+          .collection('productos')
+          .doc('bodega')
+          .update(nuevosValoresStock);
+
+      // 1. Calcular los ingredientes necesarios en total
+      for (var plato in platosSeleccionados) {
+        final cantidadPedida = int.tryParse(plato['cantidad'].toString()) ?? 0;
+        final docPlato =
+            await _firestore.collection('platos').doc(plato['id']).get();
+        if (!docPlato.exists) {
+          if (kDebugMode) {
+            debugPrint('ID no encontrado: ${plato['id']}');
+          }
+          await _mostrarDialogoError(
+            'El plato "${plato['nombre']}" no existe en la base de datos (ID: ${plato['id']}).',
+          );
+          return;
+        }
+
+        final dataPlato = docPlato.data() ?? {};
+
+        for (var entry in dataPlato.entries) {
+          final nombreIngrediente = entry.key;
+          final cantidadPorUnidad = num.tryParse(entry.value.toString()) ?? 0;
+
+          // Ignorar campos que no son ingredientes
+          if (nombreIngrediente == 'nombre' || nombreIngrediente == 'precio')
+            continue;
+
+          final cantidadTotal = cantidadPedida * (cantidadPorUnidad as num);
+          requerimientosTotales[nombreIngrediente] =
+              (requerimientosTotales[nombreIngrediente] ?? 0) + cantidadTotal;
+        }
       }
 
-      // Guardar el pedido en Firestore
+      // 2. Verificar que hay suficiente stock
+      bool hayStockSuficiente = true;
+      List<String> errores = [];
+
+      requerimientosTotales.forEach((ingrediente, cantidadNecesaria) {
+        if (!productosData.containsKey(ingrediente)) {
+          hayStockSuficiente = false;
+          errores.add('El ingrediente "$ingrediente" no existe en bodega.');
+        } else {
+          final stockDisponible = productosData[ingrediente] ?? 0;
+          if (stockDisponible < cantidadNecesaria) {
+            hayStockSuficiente = false;
+            errores.add(
+              'No hay suficiente "$ingrediente" (necesitas $cantidadNecesaria, hay $stockDisponible).',
+            );
+          }
+        }
+      });
+
+      if (!hayStockSuficiente) {
+        await _mostrarDialogoError(errores.join('\n'));
+        return;
+      }
+      List<Map<String, dynamic>> items =
+          _menuItems
+              .where((plato) => plato['cantidad'] > 0)
+              .map<Map<String, dynamic>>(
+                (plato) => {
+                  'nombre': plato['nombre'],
+                  'cantidad': plato['cantidad'],
+                },
+              )
+              .toList();
+
+      // 4. Calcular total
+      double total = 0.0;
+      for (var plato in platosSeleccionados) {
+        final doc =
+            await _firestore.collection('platos').doc(plato['id']).get();
+        final precio = (doc['precio'] as num).toDouble();
+        total += precio * (plato['cantidad'] as int);
+      }
+
+      // 5. Guardar el pedido
       await _firestore.collection('pedidos').add({
-        'items': platosSeleccionados,
+        'items': items,
         'fecha': DateTime.now(),
         'estado': 'pendiente',
         'creador': _deviceId,
+        'total': total,
       });
 
-      // Limpiar cantidades seleccionadas
+      // 6. Limpiar cantidades seleccionadas
       setState(() {
         for (var plato in _menuItems) {
           plato['cantidad'] = 0;
@@ -252,57 +371,13 @@ class _MenuPageState extends State<MenuPage> {
       });
 
       _saveMenuItems();
-      await _mostrarConfirmacion();
+      await _mostrarConfirmacion(total);
     } catch (e, stacktrace) {
       if (kDebugMode) {
         debugPrint('Error al guardar el pedido: $e\n$stacktrace');
       }
       await _mostrarDialogoError('Hubo un error al guardar el pedido.');
     }
-  }
-
-  // Ejemplo de verificación de stock para "Ceviche de camarón"
-
-  Future<void> _mostrarDialogoError(String mensaje) async {
-    await showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.4),
-      builder:
-          (_) => Center(
-            child: GlassContainer(
-              blur: 20,
-              shadowStrength: 8,
-              borderRadius: BorderRadius.circular(25),
-              opacity: 0.12,
-              border: Border.all(color: const Color(0xFF7D91FF), width: 1),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  mensaje,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(fontSize: 16),
-                ),
-              ),
-            ),
-          ),
-    );
-  }
-
-  Future<void> _mostrarConfirmacion() async {
-    await showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text('Pedido guardado'),
-            content: const Text('Tu pedido se ha guardado correctamente.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Aceptar'),
-              ),
-            ],
-          ),
-    );
   }
 
   @override
@@ -315,9 +390,10 @@ class _MenuPageState extends State<MenuPage> {
   Widget build(BuildContext context) {
     final filteredItems =
         _menuItems.where((item) {
-          return item['nombre'].toLowerCase().contains(_searchTerm);
+          final nombre = item['nombre'];
+          if (nombre == null) return false;
+          return nombre.toLowerCase().contains(_searchTerm);
         }).toList();
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -394,6 +470,16 @@ class _MenuPageState extends State<MenuPage> {
             onPressed: _guardarPedido,
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AgregarPlatosPage()),
+          );
+          _cargarPlatosDesdeFirestore(); // Recarga el menú al volver
+        },
+        child: Icon(Icons.add),
       ),
 
       body:
