@@ -3,15 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:glassmorphism_ui/glassmorphism_ui.dart';
+import 'package:icons_plus/icons_plus.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import 'package:cevicheria_app/pages/agregarplatos_page.dart';
-
-import 'package:collection/collection.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../main.dart'; // si la instancia `flutterLocalNotificationsPlugin` está en main.dart
 
@@ -72,16 +71,8 @@ class _MenuPageState extends State<MenuPage> {
     await showDialog(
       context: context,
       builder:
-          (_) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(mensaje),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cerrar'),
-              ),
-            ],
-          ),
+          (_) =>
+              AlertDialog(title: const Text('Alerta!'), content: Text(mensaje)),
     );
   }
 
@@ -216,7 +207,7 @@ class _MenuPageState extends State<MenuPage> {
           _menuItems.where((item) => item['cantidad'] > 0).toList();
 
       if (platosSeleccionados.isEmpty) {
-        await _mostrarDialogoError('Debes seleccionar al menos un plato.');
+        await _mostrarDialogoError('No se ha seleccionado ningún plato');
         return;
       }
 
@@ -513,15 +504,15 @@ class _MenuPageState extends State<MenuPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.remove),
+                            icon: Icon(Symbols.chevron_left, weight: 800),
                             onPressed: () => _restar(_menuItems.indexOf(item)),
                           ),
                           Text(
-                            '${item['cantidad']}',
-                            style: GoogleFonts.averiaSerifLibre(),
+                            '${item['cantidad']} ',
+                            style: GoogleFonts.anton(),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.add),
+                            icon: Icon(Symbols.chevron_right, weight: 800),
                             onPressed: () => _sumar(_menuItems.indexOf(item)),
                           ),
                         ],

@@ -16,6 +16,8 @@ dependencies:
   google_fonts: ^6.2.1
   glassmorphism_ui: 0.3.0
   intl: ^0.18.1
+  icons_plus: ^4.0.0
+  material_symbols_icons: ^4.2506.0
   iconly: ^1.0.1
   flutter_local_notifications: ^17.1.2
   audioplayers: ^5.2.1
