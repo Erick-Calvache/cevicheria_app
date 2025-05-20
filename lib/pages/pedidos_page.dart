@@ -225,6 +225,7 @@ class _PedidosPageState extends State<PedidosPage> {
                         final fecha = (pedido['fecha'] as Timestamp?)?.toDate();
                         final estadoActual =
                             (pedido['estado'] ?? 'pendiente') as String;
+                        final total = (pedido['total'] ?? 0).toDouble();
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(
@@ -263,6 +264,15 @@ class _PedidosPageState extends State<PedidosPage> {
                                     }
                                     return const Text('Item inválido');
                                   }),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'Total: \$${total.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+
                                   const SizedBox(height: 10),
                                   Row(
                                     mainAxisAlignment:
