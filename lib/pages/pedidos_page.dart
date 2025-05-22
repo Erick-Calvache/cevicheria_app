@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 
 class PedidosPage extends StatefulWidget {
   const PedidosPage({super.key});
@@ -15,80 +12,14 @@ class PedidosPage extends StatefulWidget {
 }
 
 class _PedidosPageState extends State<PedidosPage> {
-  final _player = AudioPlayer();
-  final _notifications = FlutterLocalNotificationsPlugin();
   final formatFecha = DateFormat('dd/MM/yyyy HH:mm');
+
   final Map<String, bool> _expandido = {
     'pendiente': true,
     'listo': true,
     'entregado': false,
     'anulado': false,
   };
-
-  final Set<String> _vistoPedidosIds = {};
-  String _currentDeviceId = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _initNotifications();
-    _loadDeviceId();
-  }
-
-  void _initNotifications() {
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
-    const initSettings = InitializationSettings(android: androidSettings);
-    _notifications.initialize(initSettings);
-  }
-
-  void _showNotification() {
-    const androidDetails = AndroidNotificationDetails(
-      'canal_pedidos',
-      'Pedidos Nuevos',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: false,
-    );
-    const notifDetails = NotificationDetails(android: androidDetails);
-    _notifications.show(
-      0,
-      'Nuevo Pedido',
-      'Se agregó un nuevo pedido',
-      notifDetails,
-    );
-  }
-
-  void _reproducirSonido() async {
-    await _player.setAsset('assets/sonidos/nuevo_pedido.mp3');
-    _player.play();
-  }
-
-  void _loadDeviceId() async {
-    final deviceInfo = DeviceInfoPlugin();
-    final androidInfo = await deviceInfo.androidInfo;
-    setState(() {
-      _currentDeviceId = androidInfo.id;
-    });
-  }
-
-  void _manejarNuevosPedidos(List<QueryDocumentSnapshot> docs) {
-    for (var doc in docs) {
-      final pedidoId = doc.id;
-      final data = doc.data() as Map<String, dynamic>;
-      final creadorId = data['deviceId'] ?? '';
-
-      // Solo mostrar notificación y reproducir sonido si es un nuevo pedido no visto
-      if (!_vistoPedidosIds.contains(pedidoId)) {
-        _vistoPedidosIds.add(pedidoId);
-        if (creadorId != _currentDeviceId) {
-          _reproducirSonido(); // Solo suena si no es un pedido ya visto
-          _showNotification();
-        }
-      }
-    }
-  }
 
   IconData getEstadoIcon(String estado) {
     switch (estado) {
@@ -159,13 +90,11 @@ class _PedidosPageState extends State<PedidosPage> {
           }
 
           final docs = snapshot.data!.docs;
-          _manejarNuevosPedidos(docs);
-
-          final pedidosPorEstado = <String, List<DocumentSnapshot>>{
-            'pendiente': [],
-            'listo': [],
-            'entregado': [],
-            'anulado': [],
+          final pedidosPorEstado = {
+            'pendiente': <DocumentSnapshot>[],
+            'listo': <DocumentSnapshot>[],
+            'entregado': <DocumentSnapshot>[],
+            'anulado': <DocumentSnapshot>[],
           };
 
           for (var doc in docs) {
@@ -272,7 +201,6 @@ class _PedidosPageState extends State<PedidosPage> {
                                       fontSize: 16,
                                     ),
                                   ),
-
                                   const SizedBox(height: 10),
                                   Row(
                                     mainAxisAlignment:

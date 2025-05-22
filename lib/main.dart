@@ -1,108 +1,138 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import 'firebase_options.dart'; // 🔧 Asegúrate de importar esto
+import 'firebase_options.dart';
 import 'theme.dart';
 import 'pages/intro_page.dart';
 import 'pages/home_page.dart';
 import 'pages/menu_page.dart';
-import 'pages/pedidos_page.dart'; // Asegúrate de importar la página de pedidos
+import 'pages/pedidos_page.dart';
+import 'pages/productos_page.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // ✅ Aquí también
-  );
-
-  if (message.data.isNotEmpty) {
-    // Notificación de tipo "data"
-    _showNotification(
-      message.data['title'] ?? 'Título desconocido',
-      message.data['body'] ?? 'Cuerpo desconocido',
-    );
-  } else if (message.notification != null) {
-    // Notificación estándar
-    _showNotification(
-      message.notification?.title ?? 'Título desconocido',
-      message.notification?.body ?? 'Cuerpo desconocido',
-    );
-  }
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('📩 [Background] Notificación recibida: ${message.messageId}');
 }
 
+// Plugin global para notificaciones locales
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-Future<void> _showNotification(String title, String body) async {
-  const AndroidNotificationDetails androidPlatformChannelSpecifics =
-      AndroidNotificationDetails(
-        'cevicheria_channel',
-        'Notificaciones de Cevichería',
-        importance: Importance.max,
-        priority: Priority.high,
-        ticker: 'ticker',
-        sound: RawResourceAndroidNotificationSound(
-          'default',
-        ), // Asegúrate de usar el sonido por defecto
-      );
-
-  const NotificationDetails platformChannelSpecifics = NotificationDetails(
-    android: androidPlatformChannelSpecifics,
-  );
-
-  await flutterLocalNotificationsPlugin.show(
-    0,
-    title,
-    body,
-    platformChannelSpecifics,
-    payload: 'default_payload',
-  );
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
-  NotificationSettings settings = await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+  if (!Platform.isWindows) {
+    // Handler de mensajes en segundo plano
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-    print('✅ Permiso de notificación concedido');
+    // Crear canal de notificaciones personalizado (solo Android)
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'cevicheria_channel',
+      'Notificaciones de Pedidos',
+      description: 'Notificaciones cuando llegan nuevos pedidos',
+      importance: Importance.max,
+      playSound: true,
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(channel);
+
+    // Inicialización del plugin de notificaciones locales
+    const initializationSettings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (response.payload != null) {
+          GlobalNavigator.navigatorKey.currentState?.pushNamed('/pedidos');
+        }
+      },
+    );
+
+    // Solicitar permisos al usuario
+    final messaging = FirebaseMessaging.instance;
+    final settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('✅ Permiso de notificaciones concedido');
+    } else {
+      print('❌ Permiso de notificaciones denegado');
+    }
+
+    // Escuchar notificaciones en primer plano
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('🔔 [Foreground] Título: ${message.notification?.title}');
+
+      final title = message.notification?.title ?? 'Nuevo pedido';
+      final body = message.notification?.body ?? '';
+
+      if (Platform.isWindows) {
+        final context = GlobalNavigator.navigatorKey.currentContext;
+        if (context != null) {
+          showWindowsToast(context, title, body);
+        }
+      } else {
+        RemoteNotification? notification = message.notification;
+        AndroidNotification? android = message.notification?.android;
+
+        if (notification != null && android != null) {
+          flutterLocalNotificationsPlugin.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                channel.id,
+                channel.name,
+                channelDescription: channel.description,
+                importance: Importance.max,
+                priority: Priority.high,
+                playSound: true,
+                icon: '@mipmap/ic_launcher',
+              ),
+            ),
+            payload: 'pedido',
+          );
+        }
+      }
+    });
+
+    // Manejar clic en notificación cuando app está en background o terminada
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('📲 App abierta desde notificación');
+      GlobalNavigator.navigatorKey.currentState?.pushNamed('/pedidos');
+    });
   } else {
-    print('❌ Permiso de notificación denegado');
+    print('🖥️ Ejecutando en Windows: se omiten notificaciones del sistema');
   }
 
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  runApp(const MyApp());
+}
 
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
+void showWindowsToast(BuildContext context, String title, String body) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('$title\n$body'),
+      duration: const Duration(seconds: 4),
+      backgroundColor: Colors.black87,
+      behavior: SnackBarBehavior.floating,
+    ),
   );
-
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print('🔔 Notificación en primer plano: ${message.notification?.title}');
-    _showNotification(
-      message.notification?.title ?? '',
-      message.notification?.body ?? '',
-    );
-  });
-
-  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    print('📲 App abierta desde notificación: ${message.notification?.title}');
-    // Aquí puedes navegar a otra página si deseas
-  });
-
-  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -113,14 +143,20 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Cevichería App',
       theme: AppTheme.lightTheme,
+      navigatorKey: GlobalNavigator.navigatorKey,
       initialRoute: '/',
       routes: {
         '/': (context) => const IntroPage(),
         '/main': (context) => const HomePage(),
         '/menu': (context) => const MenuPage(),
         '/pedidos': (context) => const PedidosPage(),
+        '/productos': (context) => const ProductosPage(),
       },
       debugShowCheckedModeBanner: false,
     );
   }
+}
+
+class GlobalNavigator {
+  static final navigatorKey = GlobalKey<NavigatorState>();
 }
