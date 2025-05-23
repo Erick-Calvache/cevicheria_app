@@ -1,3 +1,4 @@
+import 'package:cevicheria_app/theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -29,9 +30,9 @@ class _HistorialPageState extends State<HistorialPage> {
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
         title: const Text('Historial de Pedidos'),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        elevation: 4,
+        backgroundColor: AppTheme.backgroundColor,
+        foregroundColor: AppTheme.backgroundColor,
+        elevation: 0,
         shadowColor: theme.colorScheme.primary.withOpacity(0.3),
         centerTitle: true,
       ),
