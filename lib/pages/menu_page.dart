@@ -12,6 +12,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../main.dart';
+import 'package:intl/intl.dart';
 
 String? _deviceId;
 DateTime? _appInitTime;
@@ -41,6 +42,7 @@ class _MenuPageState extends State<MenuPage> {
 
     _inicializar();
     _cargarPlatosDesdeFirestore();
+    _verificarYArchivarPedidos();
   }
 
   @override
@@ -60,6 +62,42 @@ class _MenuPageState extends State<MenuPage> {
     _loadVistosDesdeLocal();
     _loadMenuItems();
     _escucharPedidos();
+  }
+
+  void _verificarYArchivarPedidos() async {
+    final ahora = DateTime.now();
+    final hoyInicio = DateTime(ahora.year, ahora.month, ahora.day);
+
+    final pedidosSnapshot =
+        await FirebaseFirestore.instance
+            .collection('pedidos')
+            .where('fecha', isLessThan: Timestamp.fromDate(hoyInicio))
+            .get();
+
+    if (pedidosSnapshot.docs.isNotEmpty) {
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (var doc in pedidosSnapshot.docs) {
+        final data = doc.data();
+        final fecha = (data['fecha'] as Timestamp).toDate();
+
+        final mesDocId = DateFormat('MMMM yyyy').format(fecha);
+        final diaDocId = fecha.day.toString().padLeft(2, '0');
+
+        final historialRef = FirebaseFirestore.instance
+            .collection('historial')
+            .doc(mesDocId)
+            .collection('dias')
+            .doc(diaDocId)
+            .collection('pedidos')
+            .doc(doc.id);
+
+        batch.set(historialRef, data);
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+    }
   }
 
   Future<void> _mostrarDialogoError(String mensaje) async {
