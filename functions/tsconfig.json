@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "esModuleInterop": true,
-    "moduleResolution": "nodenext",
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "outDir": "lib",
-    "sourceMap": true,
+    "target": "es2017",
+    "module": "commonjs",
+    "lib": ["es2017"],
     "strict": true,
-    "target": "es2017"
+    "esModuleInterop": true,
+    "noUnusedLocals": true,
+    "noImplicitReturns": true,
+    "outDir": "lib",
+    "sourceMap": true
   },
   "compileOnSave": true,
   "include": [
