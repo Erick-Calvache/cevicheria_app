@@ -1,4 +1,5 @@
 import * as functions from 'firebase-functions/v1';
+
 import * as admin from 'firebase-admin';
 
 admin.initializeApp();
@@ -8,10 +9,15 @@ export const notificarNuevoPedido = functions.firestore
   .onCreate(async (snapshot, context) => {
     const nuevoPedido = snapshot.data();
 
+    if (!nuevoPedido) {
+      console.log('No hay datos en el nuevo pedido');
+      return;
+    }
+
     const message: admin.messaging.Message = {
       notification: {
-        title: '🍤 Nuevo pedido recibido',
-        body: `Pedido de ${nuevoPedido.nombre} por $${nuevoPedido.total}`,
+        title: '🍤 Nuevo pedido',
+        body: `Pedido confirmado por $${nuevoPedido.total}`,
       },
       data: {
         screen: 'pedidos',
@@ -45,11 +51,4 @@ export const notificarNuevoPedido = functions.firestore
         },
       },
     };
-
-    try {
-      await admin.messaging().send(message);
-      console.log('✅ Notificación enviada correctamente a todos los dispositivos');
-    } catch (error) {
-      console.error('❌ Error al enviar notificación:', error);
-    }
   });

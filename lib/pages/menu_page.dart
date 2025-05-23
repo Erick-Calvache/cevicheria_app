@@ -279,6 +279,7 @@ class _MenuPageState extends State<MenuPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Menú'),
+        centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Symbols.add),
@@ -287,15 +288,30 @@ class _MenuPageState extends State<MenuPage> {
                   context,
                   MaterialPageRoute(builder: (_) => const AgregarPlatosPage()),
                 ),
+            tooltip: 'Crear plato',
           ),
-          IconButton(
-            icon: const Icon(Icons.check), // Icono para Confirmar pedido
-            onPressed: _guardarPedido,
-            tooltip: 'Confirmar pedido',
-          ),
-          IconButton(
-            icon: const Icon(Symbols.notifications),
-            onPressed: limpiarVistos,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: FilledButton.icon(
+              onPressed: _guardarPedido,
+              icon: const Icon(
+                Icons.send,
+              ), // Puedes usar Icons.arrow_forward si prefieres
+              label: const Text('Confirmar pedido'),
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    20,
+                  ), // Esquinas redondeadas
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                backgroundColor:
+                    AppTheme.primaryColor, // Cambia el color si quieres
+              ),
+            ),
           ),
         ],
         bottom: PreferredSize(

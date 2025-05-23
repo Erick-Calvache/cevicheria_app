@@ -1,3 +1,4 @@
+import 'package:cevicheria_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -64,8 +65,8 @@ class _AgregarPlatosPageState extends State<AgregarPlatosPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agregar nuevo plato'),
-        backgroundColor: theme.appBarTheme.backgroundColor ?? colors.primary,
-        elevation: 1,
+        backgroundColor: AppTheme.backgroundColor,
+        elevation: 0,
       ),
       body: Container(
         color: theme.scaffoldBackgroundColor,
@@ -131,7 +132,7 @@ class _AgregarPlatosPageState extends State<AgregarPlatosPage> {
                                               ingrediente['nombre'] =
                                                   val.trim(),
                                       decoration: const InputDecoration(
-                                        hintText: 'Nombre',
+                                        hintText: 'Nombre del ingrediente',
                                       ),
                                     ),
                                   ),
@@ -145,7 +146,7 @@ class _AgregarPlatosPageState extends State<AgregarPlatosPage> {
                                                   int.tryParse(val) ?? 1,
                                       keyboardType: TextInputType.number,
                                       decoration: const InputDecoration(
-                                        hintText: 'Cant.',
+                                        hintText: 'Cantidad',
                                       ),
                                     ),
                                   ),
@@ -187,7 +188,7 @@ class _AgregarPlatosPageState extends State<AgregarPlatosPage> {
                   foregroundColor: colors.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   textStyle: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.w500,
                   ),
                   shape: RoundedRectangleBorder(
