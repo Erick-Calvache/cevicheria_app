@@ -1,8 +1,9 @@
-import 'package:cevicheria_app/theme.dart';
+import 'package:cangreviche_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
 import 'package:intl/intl.dart';
+import 'historial.dart';
 
 class PedidosPage extends StatefulWidget {
   const PedidosPage({super.key});
@@ -73,6 +74,17 @@ class _PedidosPageState extends State<PedidosPage> {
         backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.dynamic_form),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HistorialPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream:
@@ -147,7 +159,10 @@ class _PedidosPageState extends State<PedidosPage> {
                       ),
                     ),
                     if (_expandido[estado]! && estadoDocs.isNotEmpty)
-                      ...estadoDocs.map((doc) {
+                      ...estadoDocs.asMap().entries.map((entry) {
+                        final index =
+                            entry.key + 1; // número de pedido (empezando en 1)
+                        final doc = entry.value;
                         final pedido = doc.data() as Map<String, dynamic>;
                         final items =
                             (pedido['items'] ?? []) as List<dynamic>? ?? [];
@@ -173,7 +188,7 @@ class _PedidosPageState extends State<PedidosPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Pedido',
+                                    'Pedido $index',
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleSmall
