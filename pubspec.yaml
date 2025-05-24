@@ -1,5 +1,5 @@
-name: cevicheria_app
-description: "A new Flutter project."
+name: cangreviche_app
+description: "App para pedidos en la cevichería en tiempo real."
 publish_to: 'none' 
 
 version: 1.0.0+1
@@ -26,6 +26,7 @@ dependencies:
 
   uuid: any
   collection: any
+  rename: ^3.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,17 +1,15 @@
 import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:cevicheria_app/pages/agregarplatos_page.dart';
-import 'package:cevicheria_app/theme.dart';
+import 'package:cangreviche_app/pages/agregarplatos_page.dart';
+import 'package:cangreviche_app/theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+// ignore: unnecessary_import
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:icons_plus/icons_plus.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import '../main.dart';
 import 'package:intl/intl.dart';
 
 String? _deviceId;
@@ -21,6 +19,7 @@ Set<String> _vistoPedidosIds = {};
 class MenuPage extends StatefulWidget {
   const MenuPage({super.key});
   @override
+  // ignore: library_private_types_in_public_api
   _MenuPageState createState() => _MenuPageState();
 }
 
@@ -39,7 +38,6 @@ class _MenuPageState extends State<MenuPage> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {});
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {});
     FirebaseMessaging.instance.subscribeToTopic('nuevos_pedidos');
-
     _inicializar();
     _cargarPlatosDesdeFirestore();
     _verificarYArchivarPedidos();
@@ -67,7 +65,6 @@ class _MenuPageState extends State<MenuPage> {
   void _verificarYArchivarPedidos() async {
     final ahora = DateTime.now();
     final hoyInicio = DateTime(ahora.year, ahora.month, ahora.day);
-
     final pedidosSnapshot =
         await FirebaseFirestore.instance
             .collection('pedidos')
@@ -83,7 +80,6 @@ class _MenuPageState extends State<MenuPage> {
 
         final mesDocId = DateFormat('MMMM yyyy').format(fecha);
         final diaDocId = fecha.day.toString().padLeft(2, '0');
-
         final historialRef = FirebaseFirestore.instance
             .collection('historial')
             .doc(mesDocId)
@@ -91,11 +87,9 @@ class _MenuPageState extends State<MenuPage> {
             .doc(diaDocId)
             .collection('pedidos')
             .doc(doc.id);
-
         batch.set(historialRef, data);
         batch.delete(doc.reference);
       }
-
       await batch.commit();
     }
   }
@@ -104,8 +98,35 @@ class _MenuPageState extends State<MenuPage> {
     await showDialog(
       context: context,
       builder:
-          (_) =>
-              AlertDialog(title: const Text('Alerta!'), content: Text(mensaje)),
+          (_) => AlertDialog(
+            backgroundColor: const Color.fromARGB(240, 38, 38, 38),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: const [
+                Icon(Icons.disabled_by_default, color: AppTheme.primaryColor),
+                SizedBox(width: 10),
+                Text(
+                  'Advertencia',
+                  style: TextStyle(color: AppTheme.primaryColor),
+                ),
+              ],
+            ),
+            content: Text(
+              mensaje,
+              style: const TextStyle(color: Color.fromARGB(221, 255, 255, 255)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.primaryColor,
+                ),
+                child: const Text('Cerrar'),
+              ),
+            ],
+          ),
     );
   }
 
@@ -114,11 +135,30 @@ class _MenuPageState extends State<MenuPage> {
       context: context,
       builder:
           (_) => AlertDialog(
-            title: const Text('Valor total'),
-            content: Text('Total a cobrar: \$${total.toStringAsFixed(2)}'),
+            backgroundColor: const Color.fromARGB(240, 38, 38, 38),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: const [
+                Icon(Icons.verified, color: AppTheme.primaryColor),
+                SizedBox(width: 10),
+                Text(
+                  'Valor total',
+                  style: TextStyle(color: AppTheme.primaryColor),
+                ),
+              ],
+            ),
+            content: Text(
+              'Total a cobrar: \$${total.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 18, color: Colors.white),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.primaryColor,
+                ),
                 child: const Text('Aceptar'),
               ),
             ],
@@ -148,24 +188,32 @@ class _MenuPageState extends State<MenuPage> {
 
   void _escucharPedidos() {
     _firestore.collection('pedidos').snapshots().listen((snapshot) async {
-      final prefs = await SharedPreferences.getInstance();
-      for (final docChange in snapshot.docChanges) {
-        if (docChange.type == DocumentChangeType.added) {
-          final pedidoId = docChange.doc.id;
-          if (_vistoPedidosIds.contains(pedidoId)) continue;
-          final data = docChange.doc.data()!;
-          final fecha = (data['fecha'] as Timestamp).toDate();
-          final creador = data['creador'];
-          if (fecha.isAfter(_appInitTime!) && creador != _deviceId) {
-            try {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        for (final docChange in snapshot.docChanges) {
+          if (docChange.type == DocumentChangeType.added) {
+            final pedidoId = docChange.doc.id;
+            if (_vistoPedidosIds.contains(pedidoId)) continue;
+
+            final data = docChange.doc.data();
+            if (data == null) continue;
+
+            final fecha = (data['fecha'] as Timestamp).toDate();
+            final creador = data['creador'];
+
+            if (_appInitTime != null &&
+                fecha.isAfter(_appInitTime!) &&
+                creador != _deviceId) {
               await player.play(AssetSource('notificacion.mp3'));
               _vistoPedidosIds.add(pedidoId);
               await prefs.setStringList('vistos', _vistoPedidosIds.toList());
-            } catch (e) {
-              if (kDebugMode) print('Error al reproducir sonido: $e');
             }
           }
         }
+      } catch (e, stackTrace) {
+        // Aquí puedes registrar el error en consola o en un sistema de monitoreo
+        debugPrint('Error en _escucharPedidos: $e');
+        debugPrint('$stackTrace');
       }
     });
   }
@@ -219,7 +267,7 @@ class _MenuPageState extends State<MenuPage> {
       final platosSeleccionados =
           _menuItems.where((item) => item['cantidad'] > 0).toList();
       if (platosSeleccionados.isEmpty) {
-        await _mostrarDialogoError('No se ha seleccionado ningún plato');
+        await _mostrarDialogoError('Selecciona al menos un plato');
         return;
       }
 
@@ -243,6 +291,7 @@ class _MenuPageState extends State<MenuPage> {
         for (var entry in dataPlato.entries) {
           final nombreIngrediente = entry.key;
           if (nombreIngrediente == 'nombre' || nombreIngrediente == 'precio')
+            // ignore: curly_braces_in_flow_control_structures
             continue;
           final cantidadPorUnidad = num.tryParse(entry.value.toString()) ?? 0;
           requerimientosTotales[nombreIngrediente] =
@@ -258,7 +307,7 @@ class _MenuPageState extends State<MenuPage> {
         final stockActual = productosData[ingrediente] ?? 0;
         if (stockActual < cantidad) {
           await _mostrarDialogoError(
-            'No hay suficiente stock de "$ingrediente".',
+            'No hay suficiente "$ingrediente" en bodega',
           );
           return;
         }
@@ -280,10 +329,10 @@ class _MenuPageState extends State<MenuPage> {
           .doc('bodega')
           .update(nuevosValoresStock);
       await _firestore.collection('pedidos').add({
+        'creador': _deviceId,
         'fecha': DateTime.now(),
         'platos': platosSeleccionados,
         'total': total,
-        'creador': _deviceId,
       });
 
       _mostrarConfirmacion(total);
@@ -301,8 +350,6 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Dentro de build:
-
     final platosFiltrados =
         _searchTerm.isEmpty
             ? _menuItems
@@ -316,11 +363,15 @@ class _MenuPageState extends State<MenuPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Menú'),
+        backgroundColor: AppTheme.backgroundColor,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        flexibleSpace: Container(color: AppTheme.backgroundColor),
+        title: const Text('CANGREVICHE'),
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Symbols.add),
+            icon: const Icon(Symbols.local_dining),
             onPressed:
                 () => Navigator.push(
                   context,
@@ -332,22 +383,17 @@ class _MenuPageState extends State<MenuPage> {
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: FilledButton.icon(
               onPressed: _guardarPedido,
-              icon: const Icon(
-                Icons.send,
-              ), // Puedes usar Icons.arrow_forward si prefieres
+              icon: const Icon(Icons.send),
               label: const Text('Confirmar pedido'),
               style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    20,
-                  ), // Esquinas redondeadas
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
                 ),
-                backgroundColor:
-                    AppTheme.primaryColor, // Cambia el color si quieres
+                backgroundColor: AppTheme.primaryColor,
               ),
             ),
           ),
@@ -404,7 +450,6 @@ class _MenuPageState extends State<MenuPage> {
           );
         },
       ),
-      // Eliminamos el floatingActionButton porque ahora Confirmar está en el AppBar
     );
   }
 }

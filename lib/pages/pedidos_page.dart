@@ -1,4 +1,4 @@
-import 'package:cevicheria_app/theme.dart';
+import 'package:cangreviche_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:glassmorphism_ui/glassmorphism_ui.dart';
@@ -76,7 +76,7 @@ class _PedidosPageState extends State<PedidosPage> {
         scrolledUnderElevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
+            icon: const Icon(Icons.dynamic_form),
             onPressed: () {
               Navigator.push(
                 context,

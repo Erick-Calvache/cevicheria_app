@@ -1,5 +1,5 @@
-import 'package:cevicheria_app/pages/menu_page.dart';
-import 'package:cevicheria_app/theme.dart';
+import 'package:cangreviche_app/pages/menu_page.dart';
+import 'package:cangreviche_app/theme.dart';
 import 'package:flutter/material.dart';
 import 'pedidos_page.dart';
 import 'productos_page.dart';
